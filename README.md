@@ -1,6 +1,6 @@
 # DocuMed
 
-DocuMed è una piattaforma full-stack per il percorso amministrativo e documentale di un paziente: registrazione, ricovero, archiviazione GridFS, OCR Tesseract, ricerca del testo e dimissione. Il progetto usa un unico ruolo applicativo, `ADMIN`, e dati esclusivamente sintetici.
+DocuMed è una piattaforma full-stack per il percorso amministrativo e documentale di un paziente: registrazione, ricovero, archiviazione GridFS, OCR Tesseract, ricerca del testo e dimissione.
 
 ## Architettura
 
@@ -17,7 +17,7 @@ Auth Service / API Gateway :8282
                          +--> OCR Service :8083 --> Tesseract ita
 ```
 
-Il browser comunica soltanto con il gateway. Document Service deriva il `patientId` dal ricovero interrogando Patient Service e invia sincronicamente il file GridFS a OCR Service. Non sono presenti broker o aggregatori dashboard.
+Il browser comunica con API Gateway. Document Service estrae il `patientId` dal ricovero interrogando Patient Service e invia il file GridFS a OCR Service che ne estrapola il testo tramite uso di Tesseract.
 
 ## Moduli
 
@@ -77,18 +77,6 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 8. download del file originale;
 9. dimissione e aggiornamento dashboard.
 
-Esempio login:
-
-```bash
-curl -u 'documed-web:DocuMedWebDemo123!' \
-  -X POST http://localhost:8282/oauth/token \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  --data-urlencode grant_type=password \
-  --data-urlencode username=admin \
-  --data-urlencode 'password=AdminDemo123!'
-```
-
-Usare l'`access_token` restituito come `Authorization: Bearer <token>` sulle API.
 
 ## Endpoint principali
 
@@ -118,33 +106,6 @@ Usare l'`access_token` restituito come `Authorization: Bearer <token>` sulle API
 - `GET /api/documents/statistics`
 - interno: `POST /internal/ocr/extract`
 
-## Build e test manuali
-
-Backend, sempre con Java 11:
-
-```bash
-cd BackEnd/documed-patient-service
-mvn clean test
-```
-
-Ripetere per gli altri tre moduli. Frontend:
-
-```bash
-cd FrontEnd/documed-frontend
-npm ci
-npm test
-npm run build
-```
-
 ## Dati e amministratori
 
-Il repository non contiene dati sanitari reali. Le stringhe usate da test e demo sono sintetiche. Gli amministratori risiedono in `auth_service.users`; i client OAuth2 in `auth_service.oauth_clients`. Per aggiungere utenti generare una password BCrypt e inserire un documento con `activated: true` e `authorities: ["ROLE_ADMIN"]`, come descritto nel README Auth.
-
-## Limiti
-
-- OAuth2 password grant è mantenuto per compatibilità con il gateway legacy; il client secret inserito nella SPA è identificativo, non un segreto proteggibile.
-- JWT HMAC non dispone di revoca server-side: il logout elimina il token dal browser.
-- OCR è sincrono e supporta PNG/JPEG; PDF è archiviabile ma non elaborato.
-- Qualità OCR dipende da risoluzione, contrasto e orientamento.
-- La ricerca pazienti frontend è locale e non paginata.
-- Spring Boot 2.2/Spring Cloud Hoxton sono mantenuti per compatibilità e richiedono Java 11; un upgrade è uno sviluppo futuro.
+Il repository non contiene dati sanitari reali. Le stringhe usate da test e demo sono fittizi.

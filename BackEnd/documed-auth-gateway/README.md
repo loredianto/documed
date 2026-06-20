@@ -2,15 +2,13 @@
 
 ## Scopo
 
-Servizio Spring Boot esistente adattato per:
+Servizio Spring Boot per:
 
-- autenticare amministratori con un unico ruolo applicativo, `ROLE_ADMIN`;
+- autenticare amministratori con ruolo applicativo, `ROLE_ADMIN`;
 - generare e verificare JWT firmati;
 - proteggere tutte le API applicative con `ROLE_ADMIN`;
 - inoltrare le future API verso Patient Service e Document Service;
 - applicare CORS centralmente.
-
-Il frontend e i microservizi applicativi non fanno parte di questo modulo.
 
 ## Tecnologie e compatibilità
 
@@ -23,9 +21,6 @@ Il frontend e i microservizi applicativi non fanno parte di questo modulo.
 - MongoDB;
 - Springfox Swagger 2.9.2.
 
-Usare JDK 11. Lo stack OAuth2/JAXB ereditato non avvia correttamente i test su
-JDK 21. Questa fase mantiene Java e Spring esistenti; una migrazione del framework
-è lavoro futuro separato.
 
 ## Struttura
 
@@ -39,10 +34,6 @@ src/main/java/it/projectwork/documed/authservice/
 src/main/resources/
 └── application.yml
 ```
-
-Esiste una sola configurazione applicativa. Ambiente locale, Docker e produzione
-usano le stesse proprietà, differenziate esclusivamente tramite variabili
-d'ambiente.
 
 ## Variabili d'ambiente
 
@@ -60,41 +51,16 @@ Vedere [`.env.example`](.env.example).
 | `GATEWAY_MAX_FILE_SIZE` | no | File massimo inoltrato, default `10MB` |
 | `GATEWAY_MAX_REQUEST_SIZE` | no | Limite multipart, default `11MB` |
 
-Non committare `.env`.
 
 ## Gestione utenti e client OAuth2
 
-Il servizio non esegue provisioning automatico. MongoDB usa:
+
+MongoDB usa:
 
 - database `auth_service`;
 - collection `users` per amministratori;
 - collection `oauth_clients` per client OAuth2.
 
-Password utente e secret client devono essere hash BCrypt, mai testo in chiaro.
-Documento amministratore minimo:
-
-```javascript
-db.users.insertOne({
-  username: "admin@example.local",
-  password: "$2a$10$<bcrypt-hash>",
-  activated: true,
-  authorities: ["ROLE_ADMIN"]
-})
-```
-
-Client OAuth2 minimo:
-
-```javascript
-db.oauth_clients.insertOne({
-  clientId: "platform-client",
-  clientSecret: "$2a$10$<bcrypt-hash>",
-  grantTypes: "password,refresh_token",
-  scopes: "read,write",
-  resources: "platform-api",
-  accessTokenValidity: 900,
-  refreshTokenValidity: 3600
-})
-```
 
 `username` e `clientId` hanno indice univoco. La chiave JWT non viene salvata
 nel database.
@@ -241,37 +207,3 @@ curl -u "$OAUTH_CLIENT_ID:$OAUTH_CLIENT_SECRET" \
 JWT è stateless. `/api/auth/logout` restituisce `204`; il client deve eliminare
 access e refresh token. Il token di accesso resta valido fino alla scadenza breve.
 Nessuna blacklist è introdotta in questa fase.
-
-## CORS
-
-Sono accettate solo origini elencate in `CORS_ALLOWED_ORIGINS`. Metodi consentiti:
-`GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`. Header ammessi:
-`Authorization`, `Content-Type`, `Accept`, `Origin`.
-
-## Test
-
-```bash
-JAVA_HOME="$HOME/.sdkman/candidates/java/11.0.25-tem" \
-PATH="$HOME/.sdkman/candidates/java/11.0.25-tem/bin:$PATH" \
-sh mvnw test
-```
-
-I test coprono:
-
-- login valido e firma JWT;
-- login non valido;
-- accesso senza token;
-- accesso con `ROLE_ADMIN`;
-- logout;
-- preflight CORS;
-- priorità route Zuul.
-
-## Decisioni e limiti
-
-- mantenuto authorization server esistente con `JwtTokenStore`;
-- unico ruolo applicativo: `ROLE_ADMIN`;
-- firma HMAC scelta per compatibilità minima col template;
-- nessun seed o account locale: utenti e client OAuth2 provengono solo da MongoDB;
-- nessuna registrazione pubblica, email o recupero password;
-- nessun service discovery: Zuul usa URL espliciti;
-- stack Spring OAuth2/Zuul legacy da migrare solo in fase futura dedicata.
