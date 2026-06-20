@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: documed-ocr-service
+  servlet:
+    multipart:
+      max-file-size: ${OCR_MAX_FILE_SIZE:10MB}
+      max-request-size: ${OCR_MAX_REQUEST_SIZE:11MB}
+
+server:
+  port: ${SERVER_PORT:8083}
+  error:
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
+
+security:
+  jwt:
+    signing-key: ${JWT_SIGNING_KEY}
+
+ocr:
+  command: ${TESSERACT_COMMAND:tesseract}
+  language: ${OCR_LANGUAGE:ita}
+  timeout-seconds: ${OCR_TIMEOUT_SECONDS:60}
+  max-file-size-bytes: ${OCR_MAX_FILE_SIZE_BYTES:10485760}

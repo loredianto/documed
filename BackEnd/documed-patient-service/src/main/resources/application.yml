@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: documed-patient-service
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
+
+security:
+  jwt:
+    signing-key: ${JWT_SIGNING_KEY}
+
+application:
+  time-zone: ${APP_TIME_ZONE:Europe/Rome}

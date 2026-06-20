@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: documed-document-service
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      auto-index-creation: true
+  servlet:
+    multipart:
+      max-file-size: ${DOCUMENT_MAX_FILE_SIZE:10MB}
+      max-request-size: ${DOCUMENT_MAX_REQUEST_SIZE:11MB}
+
+server:
+  port: ${SERVER_PORT:8082}
+  error:
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
+
+security:
+  jwt:
+    signing-key: ${JWT_SIGNING_KEY}
+
+clients:
+  patient-service:
+    base-url: ${PATIENT_SERVICE_URL:http://localhost:8081}
+    connect-timeout-millis: ${PATIENT_SERVICE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-millis: ${PATIENT_SERVICE_READ_TIMEOUT_MS:5000}
+  ocr-service:
+    base-url: ${OCR_SERVICE_URL:http://localhost:8083}
+    connect-timeout-millis: ${OCR_SERVICE_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-millis: ${OCR_SERVICE_READ_TIMEOUT_MS:65000}
+
+documents:
+  max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:10485760}

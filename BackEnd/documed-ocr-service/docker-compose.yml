@@ -1,0 +1,23 @@
+services:
+  ocr-service:
+    build:
+      context: .
+      dockerfile: docker/java/Dockerfile
+    container_name: platform-ocr-service
+    restart: unless-stopped
+    env_file:
+      - ${OCR_ENV_FILE:-.env}
+    ports:
+      - "${OCR_SERVICE_PORT:-8083}:8083"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - platform-network
+
+networks:
+  platform-network:
+    name: platform-network
+    external: true

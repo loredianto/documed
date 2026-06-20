@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: documed-auth-gateway
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+  main:
+    allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: ${GATEWAY_MAX_FILE_SIZE:10MB}
+      # The request limit includes multipart headers in addition to the file.
+      max-request-size: ${GATEWAY_MAX_REQUEST_SIZE:11MB}
+
+server:
+  port: ${SERVER_PORT:8282}
+  error:
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
+
+security:
+  jwt:
+    signing-key: ${JWT_SIGNING_KEY}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+zuul:
+  ignored-services: '*'
+  sensitive-headers: Cookie,Set-Cookie
+  ignored-headers: Access-Control-Allow-Credentials,Access-Control-Allow-Origin
+  host:
+    connect-timeout-millis: ${GATEWAY_CONNECT_TIMEOUT_MS:5000}
+    # Must be longer than Document Service -> OCR Service read timeout (65 s).
+    socket-timeout-millis: ${GATEWAY_SOCKET_TIMEOUT_MS:75000}
+  routes:
+    # Must precede the generic admissions route: these endpoints belong to Document Service.
+    admission-documents:
+      path: /api/admissions/*/documents/**
+      url: ${DOCUMENT_SERVICE_URL:http://localhost:8082}
+      strip-prefix: false
+      sensitive-headers: Cookie,Set-Cookie
+    patient-admissions:
+      path: /api/admissions/**
+      url: ${PATIENT_SERVICE_URL:http://localhost:8081}
+      strip-prefix: false
+      sensitive-headers: Cookie,Set-Cookie
+    patients:
+      path: /api/patients/**
+      url: ${PATIENT_SERVICE_URL:http://localhost:8081}
+      strip-prefix: false
+      sensitive-headers: Cookie,Set-Cookie
+    documents:
+      path: /api/documents/**
+      url: ${DOCUMENT_SERVICE_URL:http://localhost:8082}
+      strip-prefix: false
+      sensitive-headers: Cookie,Set-Cookie

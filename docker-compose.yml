@@ -1,0 +1,176 @@
+name: documed
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *default-logging
+    networks: [documed-network]
+
+  mongodb:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:?MONGO_USERNAME is required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
+      DOCUMED_DEMO_ADMIN_USERNAME: ${DEMO_ADMIN_USERNAME:?DEMO_ADMIN_USERNAME is required}
+      DOCUMED_DEMO_ADMIN_PASSWORD_HASH: ${DEMO_ADMIN_PASSWORD_HASH:?DEMO_ADMIN_PASSWORD_HASH is required}
+      DOCUMED_DEMO_OAUTH_CLIENT_ID: ${DEMO_OAUTH_CLIENT_ID:?DEMO_OAUTH_CLIENT_ID is required}
+      DOCUMED_DEMO_OAUTH_CLIENT_SECRET_HASH: ${DEMO_OAUTH_CLIENT_SECRET_HASH:?DEMO_OAUTH_CLIENT_SECRET_HASH is required}
+    volumes:
+      - mongodb-data:/data/db
+      - ./Infrastructure/mongodb/init-demo.js:/docker-entrypoint-initdb.d/10-documed-demo.js:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --host localhost
+          --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+          --authenticationDatabase admin
+          --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)'
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *default-logging
+    networks: [documed-network]
+
+  patient-service:
+    build:
+      context: ./BackEnd/documed-patient-service
+      dockerfile: docker/java/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Europe/Rome}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks: [documed-network]
+
+  ocr-service:
+    build:
+      context: ./BackEnd/documed-ocr-service
+      dockerfile: docker/java/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8083
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY}
+      TESSERACT_COMMAND: tesseract
+      OCR_LANGUAGE: ${OCR_LANGUAGE:-ita}
+      OCR_TIMEOUT_SECONDS: ${OCR_TIMEOUT_SECONDS:-60}
+      OCR_MAX_FILE_SIZE: 10MB
+      OCR_MAX_REQUEST_SIZE: 11MB
+      OCR_MAX_FILE_SIZE_BYTES: 10485760
+    logging: *default-logging
+    networks: [documed-network]
+
+  document-service:
+    build:
+      context: ./BackEnd/documed-document-service
+      dockerfile: docker/java/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8082
+      MONGODB_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/document_service?authSource=admin
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY}
+      PATIENT_SERVICE_URL: http://patient-service:8081
+      OCR_SERVICE_URL: http://ocr-service:8083
+      DOCUMENT_MAX_FILE_SIZE: 10MB
+      DOCUMENT_MAX_REQUEST_SIZE: 11MB
+      DOCUMENT_MAX_FILE_SIZE_BYTES: 10485760
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      patient-service:
+        condition: service_started
+      ocr-service:
+        condition: service_started
+    logging: *default-logging
+    networks: [documed-network]
+
+  auth-gateway:
+    build:
+      context: ./BackEnd/documed-auth-gateway
+      dockerfile: docker/java/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8282
+      MONGODB_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/auth_service?authSource=admin
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      PATIENT_SERVICE_URL: http://patient-service:8081
+      DOCUMENT_SERVICE_URL: http://document-service:8082
+      GATEWAY_CONNECT_TIMEOUT_MS: 5000
+      GATEWAY_SOCKET_TIMEOUT_MS: 75000
+      GATEWAY_MAX_FILE_SIZE: 10MB
+      GATEWAY_MAX_REQUEST_SIZE: 11MB
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      patient-service:
+        condition: service_started
+      document-service:
+        condition: service_started
+    ports:
+      - "${AUTH_GATEWAY_PORT:-8282}:8282"
+    logging: *default-logging
+    networks: [documed-network]
+
+  frontend:
+    build:
+      context: ./FrontEnd/documed-frontend
+      dockerfile: docker/Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_AUTH_CLIENT_ID: ${DEMO_OAUTH_CLIENT_ID}
+        VITE_AUTH_CLIENT_SECRET: ${DEMO_OAUTH_CLIENT_SECRET:?DEMO_OAUTH_CLIENT_SECRET is required}
+    restart: unless-stopped
+    depends_on:
+      auth-gateway:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health | grep -q ok"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    networks: [documed-network]
+
+volumes:
+  postgres-data:
+    name: documed-postgres-data
+  mongodb-data:
+    name: documed-mongodb-data
+
+networks:
+  documed-network:
+    name: documed-network
+    driver: bridge

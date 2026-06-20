@@ -1,0 +1,23 @@
+services:
+  auth-gateway:
+    build:
+      context: .
+      dockerfile: docker/java/Dockerfile
+    container_name: platform-auth-gateway
+    restart: unless-stopped
+    env_file:
+      - ${AUTH_ENV_FILE:-.env}
+    ports:
+      - "${AUTH_GATEWAY_PORT:-8282}:8282"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - platform-network
+
+networks:
+  platform-network:
+    name: platform-network
+    external: true
