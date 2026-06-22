@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import it.projectwork.documed.authservice.repository.AuthClientRepository;
 
 /**
- * Resolves OAuth2 client configuration exclusively from MongoDB.
+ * Resolves OAuth2 client configuration exclusively from PostgreSQL.
  */
 @Service
 public class AuthClientDetailsService implements ClientDetailsService {

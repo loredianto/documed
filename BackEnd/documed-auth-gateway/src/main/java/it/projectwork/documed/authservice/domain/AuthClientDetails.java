@@ -7,41 +7,55 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
- * OAuth2 client persisted in MongoDB and consumed by the existing
+ * OAuth2 client persisted in PostgreSQL and consumed by the existing
  * authorization server.
  */
-@Document(collection = "oauth_clients")
+@Entity
+@Table(name = "oauth_clients")
 public class AuthClientDetails implements ClientDetails {
 
     private static final long serialVersionUID = 1L;
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Indexed(unique = true)
+    @Column(name = "client_id", nullable = false, unique = true, length = 100)
     private String clientId;
 
+    @Column(name = "client_secret", nullable = false, length = 100)
     private String clientSecret;
 
+    @Column(name = "grant_types", nullable = false, length = 255)
     private String grantTypes;
 
+    @Column(nullable = false, length = 255)
     private String scopes;
 
+    @Column(nullable = false, length = 255)
     private String resources;
 
+    @Column(name = "redirect_uris", length = 1000)
     private String redirectUris;
 
+    @Column(name = "access_token_validity", nullable = false)
     private Integer accessTokenValidity;
 
+    @Column(name = "refresh_token_validity", nullable = false)
     private Integer refreshTokenValidity;
 
+    @Column(name = "additional_information", columnDefinition = "TEXT")
     private String additionalInformation;
 
     @Override
@@ -109,7 +123,11 @@ public class AuthClientDetails implements ClientDetails {
         return null;
     }
 
-    public void setId(String id) {
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
         this.id = id;
     }
 

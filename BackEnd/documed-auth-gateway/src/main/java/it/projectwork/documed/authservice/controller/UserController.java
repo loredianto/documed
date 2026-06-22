@@ -19,7 +19,7 @@ import it.projectwork.documed.authservice.util.Authorities;
  *
  * <p>Token creation remains on the standard OAuth2 endpoint
  * {@code POST /oauth/token}. User provisioning is performed directly in
- * MongoDB and is not exposed as a public API.</p>
+ * PostgreSQL and is not exposed as a public API.</p>
  */
 @RestController
 @RequestMapping("/api/auth")

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { deleteDocument, downloadDocument, getDocument, getDocumentOcr, processDocumentOcr } from "../api/documents";
+import { deleteDocument, downloadDocument, getDocument, getDocumentContent, getDocumentOcr, processDocumentOcr } from "../api/documents";
 import { getAdmission, getPatient } from "../api/patients";
 import { documentTypeLabel } from "../components/DocumentList";
 import { ErrorMessage, Loading } from "../components/Feedback";
 import { StatusBadge } from "../components/StatusBadge";
+import { DocumentViewer } from "../components/DocumentViewer";
 import { Admission, DocumentOcrResult, Patient, PatientDocument } from "../types";
 import { formatDate, formatFileSize, readableError } from "../utils/format";
 
@@ -18,6 +19,9 @@ export function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewError, setPreviewError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +36,32 @@ export function DocumentDetailPage() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    setPreviewUrl("");
+    setPreviewLoading(true);
+    setPreviewError("");
+
+    getDocumentContent(id)
+      .then((content) => {
+        objectUrl = URL.createObjectURL(content);
+        if (active) setPreviewUrl(objectUrl);
+        else URL.revokeObjectURL(objectUrl);
+      })
+      .catch((requestError) => {
+        if (active) setPreviewError(readableError(requestError));
+      })
+      .finally(() => {
+        if (active) setPreviewLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [id]);
 
   async function runOcr() {
     setProcessing(true); setError("");
@@ -62,11 +92,20 @@ export function DocumentDetailPage() {
         <div className="panel detail-card"><span>Formato</span><strong>{document.contentType}</strong></div>
         <div className="panel detail-card"><span>Caricato</span><strong>{formatDate(document.uploadedAt)}</strong></div>
       </div>
-      <div className="ocr-panel panel section-gap">
-        <header><div><span className="eyebrow">Riconoscimento testo</span><h2>Testo estratto</h2></div><button className="button primary" disabled={processing || ocr?.ocrStatus === "PROCESSING"} onClick={() => void runOcr()}>{processing ? "Elaborazione…" : ocr?.ocrStatus === "COMPLETED" ? "Ripeti OCR" : "Avvia OCR"}</button></header>
-        {ocr?.ocrStatus === "FAILED" && <ErrorMessage message={ocr.ocrErrorMessage ?? "Elaborazione OCR fallita"} />}
-        <pre className="ocr-text">{ocr?.extractedText || "Nessun testo estratto. Avvia l'OCR su un'immagine PNG o JPEG."}</pre>
-        {ocr?.processedAt && <small>Ultima elaborazione: {formatDate(ocr.processedAt)}</small>}
+      <div className="comparison-heading section-gap">
+        <div><span className="eyebrow">Verifica documentale</span><h2>Originale e testo OCR</h2><p>Confronta visivamente il documento archiviato con il testo riconosciuto da Tesseract.</p></div>
+      </div>
+      <div className="document-comparison">
+        <article className="comparison-pane panel original-pane">
+          <header><div><span className="pane-index">01</span><h3>Documento originale</h3></div></header>
+          <DocumentViewer document={document} previewUrl={previewUrl} loading={previewLoading} error={previewError} />
+        </article>
+        <article className="comparison-pane panel ocr-panel">
+          <header><div><span className="pane-index">02</span><h3>Testo estratto</h3></div><button className="button primary" disabled={processing || ocr?.ocrStatus === "PROCESSING"} onClick={() => void runOcr()}>{processing ? "Elaborazione…" : ocr?.ocrStatus === "COMPLETED" ? "Ripeti OCR" : "Avvia OCR"}</button></header>
+          {ocr?.ocrStatus === "FAILED" && <ErrorMessage message={ocr.ocrErrorMessage ?? "Elaborazione OCR fallita"} />}
+          <pre className="ocr-text">{ocr?.extractedText || "Nessun testo estratto. Avvia l'OCR su un'immagine PNG o JPEG."}</pre>
+          {ocr?.processedAt && <small>Ultima elaborazione: {formatDate(ocr.processedAt)}</small>}
+        </article>
       </div>
     </section>
   );

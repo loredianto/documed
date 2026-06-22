@@ -6,8 +6,8 @@ Il file canonico [`docker-compose.yml`](../docker-compose.yml) avvia l'intero st
 
 Il Compose crea una sola rete `documed-network` e due volumi persistenti:
 
-- `documed-postgres-data`: anagrafiche e ricoveri;
-- `documed-mongodb-data`: utenti OAuth2, metadati documenti e GridFS.
+- `documed-postgres-data`: utenti OAuth2, anagrafiche e ricoveri;
+- `documed-mongodb-data`: metadati documenti e GridFS.
 
 Solo frontend (`3000`) e Auth Gateway (`8282`) sono pubblicati sull'host. Patient, Document, OCR, PostgreSQL e MongoDB sono raggiungibili esclusivamente sulla rete interna.
 
@@ -30,7 +30,10 @@ docker compose down
 
 ## Account locale nel database
 
-[`init-demo.js`](mongodb/init-demo.js) viene eseguito dall'immagine MongoDB esclusivamente su un volume vuoto. Inserisce l'utente ADMIN e il client OAuth2 nelle collection `auth_service.users` e `auth_service.oauth_clients`; l'applicazione non crea account in memoria e non espone registrazione pubblica.
+Le migrazioni Flyway dell'Auth Gateway creano lo schema PostgreSQL
+`auth_service`, le tabelle `users` e `oauth_clients` e, solo se sono valorizzate
+le variabili `DEMO_*`, le righe dimostrative. L'applicazione non crea account in
+memoria e non espone registrazione pubblica.
 
 Le password sono BCrypt. Se vengono cambiate, rigenerare i due hash in `.env` prima della prima inizializzazione, ad esempio:
 
@@ -38,11 +41,16 @@ Le password sono BCrypt. Se vengono cambiate, rigenerare i due hash in `.env` pr
 htpasswd -bnBC 10 demo 'nuova-password' | cut -d: -f2
 ```
 
-Un volume già inizializzato non viene modificato automaticamente: gli amministratori successivi vanno inseriti direttamente nel database seguendo il README dell'Auth Gateway.
+La migrazione demo viene eseguita una sola volta. Gli amministratori e i client
+successivi vanno inseriti direttamente in PostgreSQL seguendo il README
+dell'Auth Gateway.
 
 ## Healthcheck e dipendenze
 
-PostgreSQL e MongoDB hanno healthcheck nativi. I servizi applicativi attendono il database necessario; il frontend ha un endpoint `/health`. Il routing interno usa i nomi dei servizi Docker, senza porte backend pubbliche aggiuntive.
+PostgreSQL e MongoDB hanno healthcheck nativi. Auth e Patient Service attendono
+PostgreSQL; Document Service attende MongoDB. Il frontend ha un endpoint
+`/health`. Il routing interno usa i nomi dei servizi Docker, senza porte backend
+pubbliche aggiuntive.
 
 ## Configurazione
 

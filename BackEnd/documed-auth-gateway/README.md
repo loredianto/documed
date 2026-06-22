@@ -7,7 +7,7 @@ Servizio Spring Boot per:
 - autenticare amministratori con ruolo applicativo, `ROLE_ADMIN`;
 - generare e verificare JWT firmati;
 - proteggere tutte le API applicative con `ROLE_ADMIN`;
-- inoltrare le future API verso Patient Service e Document Service;
+- inoltrare le API verso Patient Service e Document Service;
 - applicare CORS centralmente.
 
 ## Tecnologie e compatibilità
@@ -18,7 +18,8 @@ Servizio Spring Boot per:
 - Spring Cloud Hoxton.SR1;
 - Spring Security OAuth2 legacy;
 - Netflix Zuul;
-- MongoDB;
+- Spring Data JPA e Flyway;
+- PostgreSQL 15;
 - Springfox Swagger 2.9.2.
 
 
@@ -29,9 +30,10 @@ src/main/java/it/projectwork/documed/authservice/
 ├── config/       JWT, security, CORS e Swagger
 ├── controller/   endpoint amministratore
 ├── domain/       utente e client OAuth2
-├── repository/   persistenza MongoDB
+├── repository/   persistenza JPA di utenti e client OAuth2
 └── service/      UserDetails e client details
 src/main/resources/
+├── db/migration/ schema e dati demo opzionali
 └── application.yml
 ```
 
@@ -41,7 +43,13 @@ Vedere [`.env.example`](.env.example).
 
 | Variabile | Obbligatoria | Descrizione |
 |---|---:|---|
-| `MONGODB_URI` | sì | URI database auth |
+| `DATABASE_URL` | sì | JDBC URL PostgreSQL |
+| `DATABASE_USERNAME` | sì | utente PostgreSQL |
+| `DATABASE_PASSWORD` | sì | password PostgreSQL |
+| `DEMO_ADMIN_USERNAME` | no | username ADMIN demo creato dalla migrazione iniziale |
+| `DEMO_ADMIN_PASSWORD_HASH` | no | password ADMIN demo in formato BCrypt |
+| `DEMO_OAUTH_CLIENT_ID` | no | identificativo client OAuth2 demo |
+| `DEMO_OAUTH_CLIENT_SECRET_HASH` | no | secret client demo in formato BCrypt |
 | `JWT_SIGNING_KEY` | sì | Segreto HMAC, minimo 32 caratteri |
 | `CORS_ALLOWED_ORIGINS` | no | Origini separate da virgola |
 | `PATIENT_SERVICE_URL` | no in locale | Destinazione Patient Service |
@@ -54,23 +62,55 @@ Vedere [`.env.example`](.env.example).
 
 ## Gestione utenti e client OAuth2
 
+PostgreSQL usa uno schema separato `auth_service` nello stesso database del
+Patient Service:
 
-MongoDB usa:
+- tabella `auth_service.users` per amministratori;
+- tabella `auth_service.oauth_clients` per client OAuth2;
+- tabella `auth_service.flyway_schema_history` per le migrazioni Auth.
 
-- database `auth_service`;
-- collection `users` per amministratori;
-- collection `oauth_clients` per client OAuth2.
+Lo schema `public` resta di competenza del Patient Service. `username` e
+`client_id` hanno vincoli univoci. Password e client secret sono salvati solo
+come hash BCrypt; la chiave JWT non viene salvata nel database.
 
+La migrazione `V2__insert_local_demo_auth.sql` inserisce le righe demo solo
+quando le quattro variabili `DEMO_*` sono valorizzate al primo avvio. Non esiste
+registrazione pubblica e l'applicazione non crea utenti in memoria.
 
-`username` e `clientId` hanno indice univoco. La chiave JWT non viene salvata
-nel database.
+Per aggiungere un amministratore successivo, generare l'hash BCrypt e inserire
+la riga direttamente nel database:
+
+```bash
+htpasswd -bnBC 10 admin2 'password-locale' | cut -d: -f2
+```
+
+```sql
+INSERT INTO auth_service.users (username, password, activated, authority)
+VALUES ('admin2', '<hash-bcrypt>', TRUE, 'ROLE_ADMIN');
+```
+
+Anche un nuovo client OAuth2 deve avere un secret BCrypt:
+
+```sql
+INSERT INTO auth_service.oauth_clients (
+    client_id, client_secret, grant_types, scopes, resources,
+    access_token_validity, refresh_token_validity
+) VALUES (
+    'nuovo-client', '<hash-bcrypt>', 'password,refresh_token',
+    'read,write', 'platform-api', 3600, 86400
+);
+```
+
+I documenti eventualmente presenti nel vecchio database MongoDB
+`auth_service` non vengono importati automaticamente: i relativi utenti e
+client devono essere ricreati con gli hash originali oppure sostituiti.
 
 ## Avvio locale
 
-Avviare prima MongoDB:
+Avviare prima PostgreSQL:
 
 ```bash
-cd DBs/MongoDB
+cd DBs/PostgreSQL
 cp .env.example .env
 docker compose up -d
 ```
@@ -79,7 +119,9 @@ Avviare il servizio con JDK 11:
 
 ```bash
 cd BackEnd/documed-auth-gateway
-MONGODB_URI='mongodb://platform:platform-local-password@localhost:27017/auth_service?authSource=admin' \
+DATABASE_URL='jdbc:postgresql://localhost:5432/documed_patient' \
+DATABASE_USERNAME='documed' \
+DATABASE_PASSWORD='documed-local-password' \
 JWT_SIGNING_KEY='replace-with-random-secret-at-least-32-characters' \
 JAVA_HOME="$HOME/.sdkman/candidates/java/11.0.25-tem" \
 PATH="$HOME/.sdkman/candidates/java/11.0.25-tem/bin:$PATH" \
@@ -93,10 +135,10 @@ Il servizio ascolta su `http://localhost:8282`.
 Per lo stack completo usare dalla root `docker compose up --build -d`. Il
 Compose di questo modulo resta disponibile per lo sviluppo isolato.
 
-MongoDB deve creare prima la rete condivisa `platform-network`:
+PostgreSQL deve essere disponibile sulla rete condivisa `platform-network`:
 
 ```bash
-cd DBs/MongoDB
+cd DBs/PostgreSQL
 cp .env.example .env
 docker compose up -d
 
@@ -129,8 +171,7 @@ Route protette già predisposte:
 | `/api/documents/**` | Document Service |
 
 La route documenti-ricovero precede quella generica dei ricoveri per evitare
-instradamenti ambigui. Finché i servizi futuri non esistono, tali route possono
-restituire errore di connessione dopo una autenticazione valida.
+instradamenti ambigui.
 
 Le API protette restituiscono errori `401`/`403` nel formato comune:
 

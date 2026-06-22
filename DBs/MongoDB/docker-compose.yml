@@ -1,5 +1,5 @@
 services:
-  # Shared by Auth Gateway and Document Service; MongoDB is not duplicated per module.
+  # Used only by Document Service for metadata and GridFS content.
   mongodb:
     image: mongo:6.0
     container_name: platform-mongodb

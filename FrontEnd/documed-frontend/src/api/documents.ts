@@ -47,9 +47,17 @@ export const getDocumentOcr = (id: string) =>
 export const deleteDocument = (id: string) =>
   requestJson<void>(`/api/documents/${id}`, { method: "DELETE" });
 
+/**
+ * Loads protected GridFS content without forcing a browser download. The
+ * caller owns any object URL created from the returned Blob.
+ */
+export async function getDocumentContent(id: string): Promise<Blob> {
+  const response = await apiFetch(`/api/documents/${id}/content`);
+  return response.blob();
+}
+
 export async function downloadDocument(document: PatientDocument): Promise<void> {
-  const response = await apiFetch(`/api/documents/${document.id}/content`);
-  const blob = await response.blob();
+  const blob = await getDocumentContent(document.id);
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement("a");
   anchor.href = url;

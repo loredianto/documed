@@ -1,44 +1,54 @@
 package it.projectwork.documed.authservice.domain;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import it.projectwork.documed.authservice.util.Authorities;
 
 /**
- * Administrator account loaded from MongoDB by Spring Security.
+ * Administrator account loaded from PostgreSQL by Spring Security.
  */
-@Document(collection = "users")
+@Entity
+@Table(name = "users")
 public class User implements UserDetails {
 
     private static final long serialVersionUID = 1L;
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Indexed(unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String username;
 
     @JsonIgnore
+    @Column(nullable = false, length = 100)
     private String password;
 
+    @Column(nullable = false)
     private boolean activated;
 
-    private Set<Authorities> authorities = new HashSet<>(Collections.singletonList(Authorities.ROLE_ADMIN));
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private Authorities authority = Authorities.ROLE_ADMIN;
 
     public User() {
-        // Required by Spring Data MongoDB.
+        // Required by JPA.
     }
 
     public User(String username, String password) {
@@ -46,11 +56,11 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -81,12 +91,15 @@ public class User implements UserDetails {
     }
 
     public void setAuthorities(Set<Authorities> authorities) {
-        this.authorities = authorities;
+        if (authorities == null || !authorities.contains(Authorities.ROLE_ADMIN)) {
+            throw new IllegalArgumentException("Only ROLE_ADMIN is supported");
+        }
+        this.authority = Authorities.ROLE_ADMIN;
     }
 
     @Override
     public List<GrantedAuthority> getAuthorities() {
-        return new ArrayList<>(authorities);
+        return new ArrayList<>(Set.of(authority));
     }
 
     @Override

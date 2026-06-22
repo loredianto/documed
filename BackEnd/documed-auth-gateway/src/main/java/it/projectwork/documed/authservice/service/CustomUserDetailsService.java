@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import it.projectwork.documed.authservice.repository.UserRepository;
 
 /**
- * Resolves activated ADMIN accounts exclusively from MongoDB.
+ * Resolves activated ADMIN accounts exclusively from PostgreSQL.
  */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {

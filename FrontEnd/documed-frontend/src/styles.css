@@ -110,7 +110,7 @@ td small { display: block; margin-top: 3px; color: var(--muted); }
 .inline-form { display: flex; align-items: flex-end; gap: 12px; }
 .inline-form label { flex: 1; }
 .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
-.upload-grid h2, .ocr-panel h2 { margin: 4px 0 0; font: 600 1.9rem "Newsreader", serif; }
+.upload-grid h2, .comparison-heading h2 { margin: 4px 0 0; font: 600 1.9rem "Newsreader", serif; }
 .upload-grid p { color: var(--muted); margin: 6px 0 0; }
 .file-field input { padding: 8px; }
 .filters { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr) auto; gap: 12px; align-items: end; margin-bottom: 18px; }
@@ -120,8 +120,23 @@ td small { display: block; margin-top: 3px; color: var(--muted); }
 .row-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .row-actions .danger-action { color: var(--danger); }
 .filename-title { overflow-wrap: anywhere; }
-.ocr-panel header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.ocr-text { min-height: 220px; max-height: 520px; overflow: auto; margin: 22px 0 12px; padding: 20px; color: #243d42; background: #f0f1ec; border: 1px solid #d8ddd7; border-radius: 8px; white-space: pre-wrap; font: .92rem/1.65 ui-monospace, "SFMono-Regular", Consolas, monospace; }
+.comparison-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 16px; }
+.comparison-heading p { max-width: 680px; margin: 7px 0 0; color: var(--muted); }
+.document-comparison { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.comparison-pane { min-width: 0; padding: 18px; box-shadow: none; }
+.comparison-pane > header { min-height: 48px; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+.comparison-pane h3 { margin: 2px 0 0; font: 600 1.4rem "Newsreader", serif; }
+.pane-index { color: var(--accent); font: 700 .65rem ui-monospace, "SFMono-Regular", Consolas, monospace; letter-spacing: .12em; }
+.document-viewer { overflow: hidden; border: 1px solid #ced6d2; border-radius: 9px; background: #e7eae5; }
+.viewer-toolbar { min-height: 38px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #53676b; background: #f2f3ef; border-bottom: 1px solid #d4dad6; font-size: .72rem; font-weight: 700; }
+.viewer-toolbar a { color: #176274; text-decoration: none; }
+.viewer-toolbar a:hover { text-decoration: underline; }
+.viewer-canvas { height: clamp(460px, 66vh, 760px); display: grid; place-items: center; overflow: auto; padding: 18px; background: repeating-linear-gradient(45deg, #e3e7e2 0, #e3e7e2 12px, #e8ebe7 12px, #e8ebe7 24px); }
+.viewer-canvas img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 2px; box-shadow: 0 12px 35px rgba(19,52,59,.18); background: white; }
+.viewer-canvas.viewer-pdf { padding: 0; background: #586468; }
+.viewer-canvas object { width: 100%; height: 100%; border: 0; background: white; }
+.viewer-message { max-width: 360px; padding: 20px; color: var(--muted); text-align: center; background: rgba(251,250,246,.88); border-radius: 8px; }
+.ocr-text { height: calc(clamp(460px, 66vh, 760px) + 39px); overflow: auto; margin: 0 0 12px; padding: 20px; color: #243d42; background: #f0f1ec; border: 1px solid #d8ddd7; border-radius: 8px; white-space: pre-wrap; font: .92rem/1.65 ui-monospace, "SFMono-Regular", Consolas, monospace; }
 .ocr-panel > small { color: var(--muted); }
 .mini-list { display: grid; gap: 8px; }
 .mini-list a { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; text-decoration: none; }
@@ -189,6 +204,9 @@ td small { display: block; margin-top: 3px; color: var(--muted); }
   .inline-form { align-items: stretch; flex-direction: column; }
   .mini-list a { grid-template-columns: 1fr auto; }
   .mini-list a > span:not(.status) { grid-column: 1 / -1; }
+  .document-comparison { grid-template-columns: 1fr; }
+  .viewer-canvas { height: min(62vh, 620px); min-height: 380px; }
+  .ocr-text { height: min(62vh, 620px); min-height: 380px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid { grid-template-columns: 1fr; }
   .donut-layout { grid-template-columns: 140px 1fr; }

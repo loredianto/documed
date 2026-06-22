@@ -1,8 +1,8 @@
 ```mermaid
 flowchart LR
     A["Frontend"] -->|"POST /oauth/token"| B["Auth Gateway"]
-    B --> C["Client OAuth2 su MongoDB"]
-    B --> D["Utente ADMIN su MongoDB"]
+    B --> C["Client OAuth2 su PostgreSQL"]
+    B --> D["Utente ADMIN su PostgreSQL"]
     B -->|"JWT firmato"| A
     A -->|"Bearer JWT /api/**"| E["Controllo firma, scadenza e ROLE_ADMIN"]
     E --> F["Endpoint Auth locali"]

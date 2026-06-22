@@ -1,4 +1,5 @@
 services:
+  # PostgreSQL is started separately from DBs/PostgreSQL/docker-compose.yml.
   auth-gateway:
     build:
       context: .

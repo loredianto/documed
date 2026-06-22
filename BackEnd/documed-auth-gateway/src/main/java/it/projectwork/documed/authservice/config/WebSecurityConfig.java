@@ -16,7 +16,7 @@ import it.projectwork.documed.authservice.service.CustomUserDetailsService;
 
 
 /**
- * Authenticates administrators and OAuth clients stored in MongoDB using
+ * Authenticates administrators and OAuth clients stored in PostgreSQL using
  * BCrypt hashes.
  */
 @Configuration

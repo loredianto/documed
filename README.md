@@ -9,6 +9,7 @@ React SPA (nginx)
         |
         v
 Auth Service / API Gateway :8282
+        +--> PostgreSQL schema auth_service
         |
         +--> Patient Service :8081 --> PostgreSQL
         |
@@ -49,19 +50,22 @@ Credenziali esclusivamente locali:
 - client OAuth2 SPA: `documed-web`
 - secret client demo: `DocuMedWebDemo123!`
 
-Utente e client vengono inseriti nelle collection MongoDB solo alla prima inizializzazione del volume; non esistono utenti in memoria o registrazione pubblica. Fuori dall'ambiente locale sostituire tutte le credenziali e la `JWT_SIGNING_KEY`.
+Utente e client vengono inseriti nelle tabelle PostgreSQL dello schema
+`auth_service` dalla migrazione Flyway iniziale; non esistono utenti in memoria
+o registrazione pubblica. Fuori dall'ambiente locale lasciare vuote le variabili
+demo e sostituire tutte le credenziali e la `JWT_SIGNING_KEY`.
 
 ## Servizi e porte
 
 | Servizio | Porta container | Porta host | Persistenza |
 |---|---:|---:|---|
 | frontend | 80 | 3000 | — |
-| auth-gateway | 8282 | 8282 | MongoDB `auth_service` |
-| patient-service | 8081 | interna | PostgreSQL |
+| auth-gateway | 8282 | 8282 | PostgreSQL, schema `auth_service` |
+| patient-service | 8081 | interna | PostgreSQL, schema `public` |
 | document-service | 8082 | interna | MongoDB + GridFS |
 | ocr-service | 8083 | interna | nessuna |
-| postgres | 5432 | interna | `documed-postgres-data` |
-| mongodb | 27017 | interna | `documed-mongodb-data` |
+| postgres | 5432 | interna | utenti, client OAuth2, pazienti e ricoveri |
+| mongodb | 27017 | interna | metadati documenti e GridFS |
 
 Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne non sono pubblicate per ridurre la superficie esposta.
 
@@ -73,7 +77,7 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 4. apertura ricovero;
 5. upload PNG/JPEG/PDF in GridFS;
 6. OCR sincrono per PNG/JPEG con lingua italiana;
-7. visualizzazione e ricerca del testo estratto;
+7. confronto affiancato tra documento originale e testo estratto, con ricerca;
 8. download del file originale;
 9. dimissione e aggiornamento dashboard.
 
@@ -108,4 +112,7 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 
 ## Dati e amministratori
 
-Il repository non contiene dati sanitari reali. Le stringhe usate da test e demo sono fittizi.
+Il repository non contiene dati sanitari reali. Le stringhe usate da test e demo
+sono fittizie. Amministratori e client OAuth2 sono gestiti direttamente nelle
+tabelle dello schema PostgreSQL `auth_service`; gli esempi SQL sono nel
+[README dell'Auth Gateway](BackEnd/documed-auth-gateway/README.md).

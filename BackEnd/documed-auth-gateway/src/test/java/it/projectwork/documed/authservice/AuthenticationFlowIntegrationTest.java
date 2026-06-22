@@ -1,7 +1,6 @@
 package it.projectwork.documed.authservice;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -13,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.netflix.zuul.filters.ZuulProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -40,15 +37,18 @@ import it.projectwork.documed.authservice.repository.UserRepository;
 import it.projectwork.documed.authservice.util.Authorities;
 
 /**
- * Verifies the complete local security flow without requiring a running MongoDB.
+ * Verifies the complete local security flow against an in-memory relational database.
  */
 @SpringBootTest(properties = {
         "security.jwt.signing-key=test-jwt-signing-key-with-more-than-32-characters",
         "security.cors.allowed-origins=http://localhost:3000",
-        "spring.autoconfigure.exclude="
-                + "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration"
+        "spring.datasource.url=jdbc:h2:mem:auth_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.properties.hibernate.default_schema=PUBLIC",
+        "spring.flyway.enabled=false"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -72,18 +72,21 @@ class AuthenticationFlowIntegrationTest {
     @Autowired
     private ZuulProperties zuulProperties;
 
-    @MockBean
+    @Autowired
     private UserRepository userRepository;
 
-    @MockBean
+    @Autowired
     private AuthClientRepository clientRepository;
 
     @BeforeEach
     void configureSecurityData() {
+        clientRepository.deleteAll();
+        userRepository.deleteAll();
+
         User admin = new User(USERNAME, passwordEncoder.encode(PASSWORD));
         admin.setActivated(true);
         admin.setAuthorities(Collections.singleton(Authorities.ROLE_ADMIN));
-        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(admin));
+        userRepository.save(admin);
 
         AuthClientDetails client = new AuthClientDetails();
         client.setClientId(CLIENT_ID);
@@ -93,7 +96,7 @@ class AuthenticationFlowIntegrationTest {
         client.setResources("platform-api");
         client.setAccessTokenValidity(900);
         client.setRefreshTokenValidity(3600);
-        when(clientRepository.findByClientId(CLIENT_ID)).thenReturn(Optional.of(client));
+        clientRepository.save(client);
     }
 
     @Test

@@ -1,9 +1,27 @@
 spring:
   application:
     name: documed-auth-gateway
-  data:
-    mongodb:
-      uri: ${MONGODB_URI}
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    schemas: auth_service
+    default-schema: auth_service
+    placeholders:
+      demo_admin_username: ${DEMO_ADMIN_USERNAME:}
+      demo_admin_password_hash: ${DEMO_ADMIN_PASSWORD_HASH:}
+      demo_oauth_client_id: ${DEMO_OAUTH_CLIENT_ID:}
+      demo_oauth_client_secret_hash: ${DEMO_OAUTH_CLIENT_SECRET_HASH:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth_service
   main:
     allow-bean-definition-overriding: true
   servlet:

@@ -52,9 +52,14 @@ Variabile utilizzata:
 | Variabile | Descrizione | Valore locale |
 |---|---|---|
 | `VITE_API_BASE_URL` | Indirizzo pubblico dell'Auth Gateway | `http://localhost:8282` |
-| `VITE_AUTH_CLIENT_ID` | Identificativo pubblico del client applicativo, se richiesto dal gateway | vuoto |
+| `VITE_AUTH_CLIENT_ID` | Client OAuth2 registrato in PostgreSQL | `documed-web` |
+| `VITE_AUTH_CLIENT_SECRET` | Secret del client OAuth2 locale | valore demo configurato nello stack |
 
-Le variabili Vite sono accessibili dal browser. Per questo motivo non devono contenere password, token permanenti o veri client secret.
+Le variabili Vite sono accessibili dal browser. Il secret usato da questa SPA è
+quindi solo dimostrativo e non deve essere considerato riservato. Nello stack
+locale deve corrispondere all'hash salvato nella tabella PostgreSQL
+`auth_service.oauth_clients`. Non inserire password utente, token permanenti o
+credenziali reali nelle variabili Vite.
 
 Il token ottenuto dopo il login viene salvato in `sessionStorage`. Viene aggiunto alle richieste tramite header `Authorization: Bearer ...` e rimosso al logout o quando il gateway restituisce una risposta `401 Unauthorized`.
 
@@ -140,7 +145,7 @@ In questo modo il frontend utilizza un unico indirizzo pubblico.
 | `/patients/:id` | dettaglio e modifica del paziente |
 | `/admissions/:id` | dettaglio del ricovero e dimissione |
 | `/documents` | elenco, caricamento e ricerca dei documenti |
-| `/documents/:id` | dettaglio del documento e risultato OCR |
+| `/documents/:id` | confronto affiancato tra documento originale e risultato OCR |
 
 ## API utilizzate
 
@@ -184,6 +189,18 @@ Il frontend permette di caricare:
 Il limite massimo del file è stabilito dal backend.
 
 I file PDF possono essere archiviati e scaricati. Nella versione attuale del progetto l'OCR è previsto principalmente per immagini PNG e JPEG. Se viene richiesta l'elaborazione di un formato non supportato, il backend restituisce un errore controllato e il documento rimane comunque conservato.
+
+## Visualizzatore documento
+
+La pagina di dettaglio mostra affiancati il file originale e il testo estratto,
+così l'amministratore può verificare visivamente il risultato di Tesseract.
+Il contenuto GridFS viene recuperato con Bearer token e trasformato in un Blob
+URL temporaneo:
+
+- PNG e JPEG usano il visualizzatore immagini del browser;
+- PDF usa il visualizzatore PDF nativo del browser;
+- il Blob URL viene revocato quando si lascia la pagina;
+- resta disponibile il comando per aprire l'originale a piena pagina.
 
 ## Scelte progettuali
 
