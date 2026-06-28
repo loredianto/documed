@@ -2,6 +2,7 @@ package it.projectwork.documed.patientservice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -176,6 +177,65 @@ class PatientServiceIntegrationTest {
         assertThat(statistics.getAdmissionsToday()).isEqualTo(1);
         assertThat(statistics.getDischargesToday()).isEqualTo(1);
         assertThat(statistics.getLastSevenDays()).hasSize(7);
+    }
+
+    @Test
+    void listsAdmissionsActivityAndCliniciansForAdminToken() throws Exception {
+        openAdmission(LocalDate.now());
+
+        mockMvc.perform(get("/api/admissions")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].department").value("Reparto dimostrativo"));
+
+        mockMvc.perform(get("/api/patients/statistics/activity")
+                        .param("from", LocalDate.now().toString())
+                        .param("to", LocalDate.now().toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].admissions").value(1));
+
+        mockMvc.perform(get("/api/clinicians")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Dott.ssa Elena Conti"));
+    }
+
+    @Test
+    void rejectsDeletingPatientWithAdmissionHistory() {
+        PatientResponse patient = patientService.create(patientRequest("RSSMRA80A01H501U"));
+        admissionService.open(patient.getId(), admissionRequest(LocalDate.now()));
+
+        assertThatThrownBy(() -> patientService.delete(patient.getId()))
+                .isInstanceOf(BusinessRuleException.class)
+                .extracting("code")
+                .isEqualTo("PATIENT_HAS_ADMISSIONS");
+    }
+
+    @Test
+    void deletesPatientWithoutAdmissions() {
+        PatientResponse patient = patientService.create(patientRequest("RSSMRA80A01H501U"));
+
+        patientService.delete(patient.getId());
+
+        assertThatThrownBy(() -> patientService.findById(patient.getId()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .extracting("code")
+                .isEqualTo("PATIENT_NOT_FOUND");
+    }
+
+    @Test
+    void deletesAdmission() throws Exception {
+        AdmissionResponse admission = openAdmission(LocalDate.now());
+
+        mockMvc.perform(delete("/api/admissions/" + admission.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
+                .andExpect(status().isNoContent());
+
+        assertThatThrownBy(() -> admissionService.findById(admission.getId()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .extracting("code")
+                .isEqualTo("ADMISSION_NOT_FOUND");
     }
 
     private AdmissionResponse openAdmission(LocalDate admissionDate) {

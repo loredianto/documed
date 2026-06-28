@@ -44,12 +44,16 @@ public class PatientDocument {
     @TextIndexed
     private String extractedText;
 
+    private OcrExtraction ocrExtraction;
+
     private String ocrErrorMessage;
 
     @Indexed
     private Instant uploadedAt;
 
     private Instant processedAt;
+
+    private boolean filedInRecord;
 
     public String getId() {
         return id;
@@ -139,6 +143,14 @@ public class PatientDocument {
         this.extractedText = extractedText;
     }
 
+    public OcrExtraction getOcrExtraction() {
+        return ocrExtraction;
+    }
+
+    public void setOcrExtraction(OcrExtraction ocrExtraction) {
+        this.ocrExtraction = ocrExtraction;
+    }
+
     public String getOcrErrorMessage() {
         return ocrErrorMessage;
     }
@@ -161,5 +173,13 @@ public class PatientDocument {
 
     public void setProcessedAt(Instant processedAt) {
         this.processedAt = processedAt;
+    }
+
+    public boolean isFiledInRecord() {
+        return filedInRecord;
+    }
+
+    public void setFiledInRecord(boolean filedInRecord) {
+        this.filedInRecord = filedInRecord;
     }
 }

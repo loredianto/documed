@@ -93,11 +93,15 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 ### Pazienti e ricoveri
 
 - `POST|GET /api/patients`
-- `GET|PUT /api/patients/{patientId}`
+- `GET|PUT|DELETE /api/patients/{patientId}`
 - `POST|GET /api/patients/{patientId}/admissions`
+- `GET /api/admissions`
 - `GET /api/admissions/{admissionId}`
 - `POST /api/admissions/{admissionId}/discharge`
+- `DELETE /api/admissions/{admissionId}`
 - `GET /api/patients/statistics`
+- `GET /api/patients/statistics/activity`
+- `GET /api/clinicians`
 
 ### Documenti e OCR
 
@@ -105,7 +109,8 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 - `GET /api/documents`
 - `GET|DELETE /api/documents/{documentId}`
 - `GET /api/documents/{documentId}/content`
-- `POST|GET /api/documents/{documentId}/ocr`
+- `POST|GET|PATCH /api/documents/{documentId}/ocr`
+- `POST /api/documents/{documentId}/file-in-record`
 - `GET /api/documents/search`
 - `GET /api/documents/statistics`
 - interno: `POST /internal/ocr/extract`

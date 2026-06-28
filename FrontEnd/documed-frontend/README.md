@@ -1,209 +1,98 @@
 # DocuMed Frontend
 
-Frontend web del progetto universitario DocuMed, sviluppato con React e TypeScript.
+SPA React/TypeScript per il flusso amministrativo DocuMed. Il browser comunica esclusivamente con l'Auth Gateway; patient-service e document-service non sono chiamati direttamente.
 
-L'applicazione permette a un amministratore di gestire il flusso principale della piattaforma:
+## Tecnologie
 
-- effettuare il login;
-- consultare la dashboard;
-- registrare e modificare i pazienti;
-- aprire e chiudere i ricoveri;
-- caricare i documenti;
-- avviare l'elaborazione OCR;
-- consultare il testo estratto.
+- React 18 e React Router 6;
+- TypeScript in modalità strict;
+- Vite 8 su Node 20.19+;
+- Fetch API centralizzata, senza librerie di stato globale;
+- Vitest e Testing Library.
 
-Il frontend comunica con l'Auth Gateway, che inoltra le richieste ai microservizi interni. In questo modo il browser non accede direttamente al Patient Service o al Document Service.
-
-## Tecnologie utilizzate
-
-- **React** per la costruzione dell'interfaccia;
-- **TypeScript** per definire in modo esplicito tipi e DTO;
-- **React Router** per la navigazione tra le pagine;
-- **Vite** per avviare il progetto in sviluppo e generare la build;
-- **Fetch API** per le richieste HTTP;
-- **Vitest e Testing Library** per i test principali.
-
-## Struttura del progetto
+## Struttura
 
 ```text
 src/
-├── api/          funzioni per comunicare con le API
-├── auth/         gestione della sessione e delle rotte protette
-├── components/   componenti riutilizzabili e layout
-├── pages/        pagine principali dell'applicazione
-├── test/         configurazione dei test
-├── utils/        funzioni di supporto
-├── App.tsx       definizione delle rotte
-└── types.ts      DTO e tipi condivisi
+├── api/          client HTTP e API per dominio
+├── auth/         sessione e route protette
+├── components/   layout e componenti condivisi
+├── pages/        pagine applicative
+├── test/         configurazione test
+├── utils/        formattazione ed errori
+├── App.tsx       routing
+└── types.ts      contratti DTO espliciti
 ```
-
-La struttura è stata mantenuta semplice, separando le chiamate HTTP, la gestione dell'autenticazione, i componenti condivisi e le singole pagine.
 
 ## Configurazione
 
-Creare il file `.env.local` partendo dall'esempio disponibile:
+Copiando `.env.example` in `.env.local` configurare:
+
+| Variabile | Descrizione | Default |
+|---|---|---|
+| `VITE_API_BASE_URL` | URL pubblico Auth Gateway | `http://localhost:8282` |
+| `VITE_AUTH_CLIENT_ID` | client OAuth2 presente in `oauth_clients` | nessuno |
+| `VITE_AUTH_CLIENT_SECRET` | credenziale del client OAuth2 | nessuno |
+
+Il client OAuth2 di una SPA non può conservare un segreto reale: queste credenziali identificano il client applicativo, mentre l'utente ADMIN viene autenticato separatamente. Per la demo usare un client DB dedicato e limitato. Il token JWT è mantenuto in `sessionStorage`, viene inviato come Bearer e viene eliminato al logout o dopo una risposta `401`.
+
+## Avvio e verifica
+
+Prerequisiti: Node.js 20.19+ e npm. Node 16 non è supportato perché fuori manutenzione e incompatibile con la toolchain aggiornata.
 
 ```bash
 cp .env.example .env.local
-```
-
-Variabile utilizzata:
-
-| Variabile | Descrizione | Valore locale |
-|---|---|---|
-| `VITE_API_BASE_URL` | Indirizzo pubblico dell'Auth Gateway | `http://localhost:8282` |
-| `VITE_AUTH_CLIENT_ID` | Client OAuth2 registrato in PostgreSQL | `documed-web` |
-| `VITE_AUTH_CLIENT_SECRET` | Secret del client OAuth2 locale | valore demo configurato nello stack |
-
-Le variabili Vite sono accessibili dal browser. Il secret usato da questa SPA è
-quindi solo dimostrativo e non deve essere considerato riservato. Nello stack
-locale deve corrispondere all'hash salvato nella tabella PostgreSQL
-`auth_service.oauth_clients`. Non inserire password utente, token permanenti o
-credenziali reali nelle variabili Vite.
-
-Il token ottenuto dopo il login viene salvato in `sessionStorage`. Viene aggiunto alle richieste tramite header `Authorization: Bearer ...` e rimosso al logout o quando il gateway restituisce una risposta `401 Unauthorized`.
-
-Questa gestione è sufficiente per la dimostrazione del progetto, ma in un sistema reale andrebbero valutate soluzioni più robuste per la gestione della sessione.
-
-## Avvio locale
-
-Prerequisiti:
-
-- Node.js;
-- npm;
-- Auth Gateway avviato sulla porta configurata.
-
-Installare le dipendenze:
-
-```bash
 npm install
-```
-
-Avviare il server di sviluppo:
-
-```bash
 npm run dev
 ```
 
-L'applicazione sarà disponibile, normalmente, all'indirizzo:
-
-```text
-http://localhost:5173
-```
-
-## Build e test
-
-Eseguire i test:
+La SPA è disponibile su `http://localhost:5173`.
 
 ```bash
 npm test
-```
-
-Generare la build:
-
-```bash
 npm run build
 ```
 
-La build viene salvata nella cartella:
+La build di produzione viene generata in `dist/`.
 
-```text
-dist/
-```
+### Docker
 
-## Avvio tramite Docker
-
-Il frontend può essere compilato e servito tramite nginx insieme agli altri componenti del progetto:
+Lo stack completo compila e serve la SPA con nginx:
 
 ```bash
+cp .env.example .env
 docker compose up --build -d
 ```
 
-L'applicazione sarà disponibile all'indirizzo:
+In Docker il client usa URL same-origin; nginx inoltra `/oauth/**` e `/api/**`
+esclusivamente all'Auth Gateway. Il frontend è disponibile su
+`http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
-
-Nell'ambiente Docker, nginx inoltra al gateway le richieste che iniziano con:
-
-```text
-/oauth/
-/api/
-```
-
-In questo modo il frontend utilizza un unico indirizzo pubblico.
-
-## Pagine disponibili
+## Pagine
 
 | Rotta | Funzione |
 |---|---|
-| `/login` | accesso dell'amministratore |
-| `/dashboard` | riepilogo dei dati della piattaforma |
-| `/patients` | elenco e ricerca dei pazienti |
-| `/patients/new` | registrazione di un paziente |
-| `/patients/:id` | dettaglio e modifica del paziente |
-| `/admissions/:id` | dettaglio del ricovero e dimissione |
-| `/documents` | elenco, caricamento e ricerca dei documenti |
-| `/documents/:id` | confronto affiancato tra documento originale e risultato OCR |
+| `/login` | login amministratore OAuth2 |
+| `/dashboard` | card e grafici alimentati dalle statistiche reali |
+| `/patients` | elenco e ricerca pazienti |
+| `/patients/new` | registrazione paziente |
+| `/patients/:id` | modifica, ricoveri e documenti del paziente |
+| `/admissions/:id` | dettaglio, documenti e dimissione |
+| `/documents` | upload, ricerca, download, OCR ed eliminazione |
+| `/documents/:id` | metadati e testo OCR |
 
-## API utilizzate
+## Integrazione API
 
-### Autenticazione
+- login: `POST /oauth/token`;
+- pazienti/ricoveri: `/api/patients/**`, `/api/admissions/**`;
+- documenti/OCR: `/api/documents/**`, `/api/admissions/{id}/documents`.
+- dashboard: `GET /api/patients/statistics` e `GET /api/documents/statistics` in parallelo.
 
-```http
-POST /oauth/token
-```
+L'upload accetta PNG, JPEG e PDF fino al limite del backend. L'OCR reale supporta PNG/JPEG; un PDF resta archiviabile e scaricabile ma l'elaborazione OCR fallisce in modo controllato.
 
-### Pazienti e ricoveri
+## Decisioni e limiti
 
-```text
-/api/patients/**
-/api/admissions/**
-```
-
-### Documenti e OCR
-
-```text
-/api/documents/**
-/api/admissions/{admissionId}/documents
-```
-
-### Dashboard
-
-La dashboard recupera in parallelo le statistiche dai due servizi:
-
-```http
-GET /api/patients/statistics
-GET /api/documents/statistics
-```
-
-## Caricamento dei documenti
-
-Il frontend permette di caricare:
-
-- immagini PNG;
-- immagini JPEG;
-- documenti PDF.
-
-Il limite massimo del file è stabilito dal backend.
-
-I file PDF possono essere archiviati e scaricati. Nella versione attuale del progetto l'OCR è previsto principalmente per immagini PNG e JPEG. Se viene richiesta l'elaborazione di un formato non supportato, il backend restituisce un errore controllato e il documento rimane comunque conservato.
-
-## Visualizzatore documento
-
-La pagina di dettaglio mostra affiancati il file originale e il testo estratto,
-così l'amministratore può verificare visivamente il risultato di Tesseract.
-Il contenuto GridFS viene recuperato con Bearer token e trasformato in un Blob
-URL temporaneo:
-
-- PNG e JPEG usano il visualizzatore immagini del browser;
-- PDF usa il visualizzatore PDF nativo del browser;
-- il Blob URL viene revocato quando si lascia la pagina;
-- resta disponibile il comando per aprire l'originale a piena pagina.
-
-## Scelte progettuali
-
-Il frontend comunica solamente con l'Auth Gateway per non conoscere gli indirizzi interni dei microservizi.
-
-Le chiamate HTTP sono raccolte nella cartella `api`, evitando di ripetere la stessa logica nelle pagine.
+- Nessuno stato globale: dati di pagina caricati dai rispettivi endpoint.
+- La ricerca pazienti è locale perché l'API espone un elenco completo; è adeguata alla demo, non a volumi elevati.
+- L'OCR è sincrono e il pulsante resta occupato fino alla risposta.
+- Le etichette mostrano solo dati sintetici; il repository non contiene dati sanitari reali.

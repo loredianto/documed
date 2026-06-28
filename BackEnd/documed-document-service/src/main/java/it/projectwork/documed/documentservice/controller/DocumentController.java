@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +24,7 @@ import it.projectwork.documed.documentservice.dto.DocumentContentResponse;
 import it.projectwork.documed.documentservice.dto.DocumentResponse;
 import it.projectwork.documed.documentservice.dto.DocumentSearchCriteria;
 import it.projectwork.documed.documentservice.dto.DocumentStatisticsResponse;
+import it.projectwork.documed.documentservice.dto.FileInRecordResponse;
 import it.projectwork.documed.documentservice.service.DocumentService;
 
 /**
@@ -70,6 +72,13 @@ public class DocumentController {
     public ResponseEntity<Void> delete(@PathVariable String documentId) {
         documentService.delete(documentId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{documentId}/file-in-record")
+    @ApiOperation("Marks a digital document as filed in the admission record")
+    public FileInRecordResponse fileInRecord(@PathVariable String documentId) {
+        documentService.fileInRecord(documentId);
+        return new FileInRecordResponse(documentId, true);
     }
 
     @GetMapping("/search")

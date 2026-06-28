@@ -8,7 +8,8 @@ Servizio Spring Boot per:
 - generare e verificare JWT firmati;
 - proteggere tutte le API applicative con `ROLE_ADMIN`;
 - inoltrare le API verso Patient Service e Document Service;
-- applicare CORS centralmente.
+- applicare CORS centralmente, inclusi `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
+  e `OPTIONS`.
 
 ## Tecnologie e compatibilità
 
@@ -166,6 +167,7 @@ Route protette già predisposte:
 | Percorso gateway | Destinazione |
 |---|---|
 | `/api/patients/**` | Patient Service |
+| `/api/clinicians/**` | Patient Service |
 | `/api/admissions/*/documents/**` | Document Service |
 | `/api/admissions/**` | Patient Service |
 | `/api/documents/**` | Document Service |

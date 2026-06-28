@@ -111,6 +111,7 @@ public class DocumentService {
         // OCR is deliberately deferred to the next project phase.
         document.setOcrStatus(OcrStatus.PENDING);
         document.setUploadedAt(Instant.now());
+        document.setFiledInRecord(false);
 
         try {
             PatientDocument saved = documentRepository.save(document);
@@ -208,6 +209,16 @@ public class DocumentService {
             byOcrStatus.put(status, documentRepository.countByOcrStatus(status));
         }
         return new DocumentStatisticsResponse(documentRepository.count(), byType, byOcrStatus);
+    }
+
+    public void fileInRecord(String documentId) {
+        PatientDocument document = findEntity(documentId);
+        if (!document.isFiledInRecord()) {
+            document.setFiledInRecord(true);
+            documentRepository.save(document);
+            LOGGER.info("Document filed in admission record: documentId={}, admissionId={}",
+                    documentId, document.getAdmissionId());
+        }
     }
 
     private ValidatedFile validateAndRead(MultipartFile file) {
@@ -321,9 +332,11 @@ public class DocumentService {
                 document.getFileSize(),
                 document.getOcrStatus(),
                 document.getExtractedText(),
+                document.getOcrExtraction(),
                 document.getOcrErrorMessage(),
                 document.getUploadedAt(),
-                document.getProcessedAt());
+                document.getProcessedAt(),
+                document.isFiledInRecord());
     }
 
     private static final class ValidatedFile {

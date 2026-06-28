@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,15 +24,20 @@ import org.springframework.http.HttpStatus;
 import it.projectwork.documed.documentservice.client.OcrClientResponse;
 import it.projectwork.documed.documentservice.client.OcrServiceClient;
 import it.projectwork.documed.documentservice.domain.DocumentType;
+import it.projectwork.documed.documentservice.domain.OcrExtraction;
 import it.projectwork.documed.documentservice.domain.OcrStatus;
 import it.projectwork.documed.documentservice.domain.PatientDocument;
+import it.projectwork.documed.documentservice.domain.TypeClassification;
+import it.projectwork.documed.documentservice.dto.DocumentOcrConfirmationRequest;
 import it.projectwork.documed.documentservice.dto.DocumentOcrResponse;
+import it.projectwork.documed.documentservice.dto.DocumentResponse;
 import it.projectwork.documed.documentservice.error.BusinessRuleException;
 import it.projectwork.documed.documentservice.error.IntegrationException;
 import it.projectwork.documed.documentservice.error.ResourceNotFoundException;
 import it.projectwork.documed.documentservice.repository.PatientDocumentRepository;
 import it.projectwork.documed.documentservice.service.DocumentOcrService;
 import it.projectwork.documed.documentservice.service.GridFsStorageService;
+import it.projectwork.documed.documentservice.service.OcrExtractionBuilder;
 
 /**
  * Verifies persisted OCR transitions, retries and failure handling.
@@ -60,7 +66,7 @@ class DocumentOcrServiceTest {
     @BeforeEach
     void setUp() {
         documentOcrService = new DocumentOcrService(
-                documentRepository, gridFsStorageService, ocrServiceClient);
+                documentRepository, gridFsStorageService, ocrServiceClient, new OcrExtractionBuilder());
     }
 
     @Test
@@ -74,6 +80,8 @@ class DocumentOcrServiceTest {
         assertThat(persistedStatuses).containsExactly(OcrStatus.PROCESSING, OcrStatus.COMPLETED);
         assertThat(response.getOcrStatus()).isEqualTo(OcrStatus.COMPLETED);
         assertThat(response.getExtractedText()).isEqualTo("Testo estratto");
+        assertThat(response.getOcrExtraction()).isNotNull();
+        assertThat(response.getOcrExtraction().getClassification().getType()).isEqualTo(DocumentType.OTHER);
         assertThat(response.getOcrErrorMessage()).isNull();
         assertThat(response.getProcessedAt()).isNotNull();
     }
@@ -120,6 +128,7 @@ class DocumentOcrServiceTest {
         assertThat(persistedStatuses).containsExactly(OcrStatus.PROCESSING, OcrStatus.COMPLETED);
         assertThat(persistedTexts).containsExactly(null, "Nuovo testo");
         assertThat(response.getExtractedText()).isEqualTo("Nuovo testo");
+        assertThat(response.getOcrExtraction()).isNotNull();
     }
 
     @Test
@@ -183,6 +192,37 @@ class DocumentOcrServiceTest {
         assertThat(response.getExtractedText()).isEqualTo("Testo archiviato");
     }
 
+    @Test
+    void confirmsManualDocumentTypeAfterCompletedOcr() {
+        PatientDocument document = existingDocument(OcrStatus.COMPLETED);
+        DocumentOcrConfirmationRequest request = confirmation(DocumentType.DISCHARGE_DOCUMENT);
+        when(documentRepository.findById(DOCUMENT_ID)).thenReturn(Optional.of(document));
+        when(documentRepository.save(any(PatientDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        DocumentResponse response = documentOcrService.confirm(DOCUMENT_ID, request);
+
+        assertThat(response.getDocumentType()).isEqualTo(DocumentType.DISCHARGE_DOCUMENT);
+        assertThat(document.getDocumentType()).isEqualTo(DocumentType.DISCHARGE_DOCUMENT);
+        assertThat(document.getOcrExtraction().getClassification().getType())
+                .isEqualTo(DocumentType.DISCHARGE_DOCUMENT);
+        assertThat(document.getOcrExtraction().getClassification().getStatus())
+                .isEqualTo("CONFIRMED");
+        verify(documentRepository).save(document);
+    }
+
+    @Test
+    void rejectsManualConfirmationBeforeCompletedOcr() {
+        PatientDocument document = existingDocument(OcrStatus.PENDING);
+        when(documentRepository.findById(DOCUMENT_ID)).thenReturn(Optional.of(document));
+
+        assertThatThrownBy(() -> documentOcrService.confirm(
+                DOCUMENT_ID, confirmation(DocumentType.DISCHARGE_DOCUMENT)))
+                .isInstanceOf(BusinessRuleException.class)
+                .extracting("code")
+                .isEqualTo("OCR_NOT_COMPLETED");
+        verify(documentRepository, never()).save(any(PatientDocument.class));
+    }
+
     private List<OcrStatus> captureSavedStatuses(PatientDocument document) {
         List<OcrStatus> statuses = new ArrayList<>();
         when(documentRepository.save(any(PatientDocument.class))).thenAnswer(invocation -> {
@@ -217,5 +257,20 @@ class DocumentOcrServiceTest {
         document.setOcrStatus(status);
         document.setUploadedAt(Instant.parse("2026-06-20T10:00:00Z"));
         return document;
+    }
+
+    private DocumentOcrConfirmationRequest confirmation(DocumentType documentType) {
+        TypeClassification classification = new TypeClassification(
+                DocumentType.MEDICAL_REPORT, 0.72, "AUTO", Collections.emptyList());
+        OcrExtraction extraction = new OcrExtraction();
+        extraction.setTitle("Documento confermato");
+        extraction.setFields(Collections.emptyList());
+        extraction.setBodyText("Testo OCR");
+        extraction.setClassification(classification);
+
+        DocumentOcrConfirmationRequest request = new DocumentOcrConfirmationRequest();
+        request.setDocumentType(documentType);
+        request.setOcrExtraction(extraction);
+        return request;
     }
 }

@@ -68,6 +68,11 @@ zuul:
       url: ${PATIENT_SERVICE_URL:http://localhost:8081}
       strip-prefix: false
       sensitive-headers: Cookie,Set-Cookie
+    clinicians:
+      path: /api/clinicians/**
+      url: ${PATIENT_SERVICE_URL:http://localhost:8081}
+      strip-prefix: false
+      sensitive-headers: Cookie,Set-Cookie
     documents:
       path: /api/documents/**
       url: ${DOCUMENT_SERVICE_URL:http://localhost:8082}

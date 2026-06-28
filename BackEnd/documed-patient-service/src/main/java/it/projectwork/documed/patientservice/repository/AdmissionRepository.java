@@ -15,7 +15,11 @@ public interface AdmissionRepository extends JpaRepository<Admission, Long> {
 
     List<Admission> findByPatientIdOrderByAdmissionDateDescIdDesc(Long patientId);
 
+    List<Admission> findAllByOrderByAdmissionDateDescIdDesc();
+
     boolean existsByPatientIdAndStatus(Long patientId, AdmissionStatus status);
+
+    long countByPatientId(Long patientId);
 
     long countByStatus(AdmissionStatus status);
 

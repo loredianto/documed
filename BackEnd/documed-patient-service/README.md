@@ -10,8 +10,10 @@ valida i JWT emessi dall'Auth Gateway.
 
 - registrazione, lettura e modifica pazienti;
 - apertura e storico ricoveri;
+- elenco globale dei ricoveri per workspace accettazione;
 - dimissione di un ricovero attivo;
-- statistiche di pazienti, ingressi e dimissioni;
+- statistiche di pazienti, ingressi e dimissioni, anche per intervallo;
+- elenco read-only dei clinici/medici firmatari selezionabili;
 - validazione degli input e gestione coerente degli errori.
 
 ## Tecnologie
@@ -33,7 +35,7 @@ lo stack OAuth2 legacy non è compatibile in modo affidabile con JDK 21.
 ```text
 src/main/java/it/projectwork/documed/patientservice/
 ├── config/       JWT, errori di sicurezza e Swagger
-├── controller/   API pazienti e ricoveri
+├── controller/   API pazienti, ricoveri e lookup clinici
 ├── domain/       entità JPA e stato ricovero
 ├── dto/          richieste e risposte REST esplicite
 ├── error/        formato errori ed exception handler
@@ -57,10 +59,34 @@ Regole applicate sia nel servizio sia, dove possibile, in PostgreSQL:
 - la dimissione non può precedere l'ingresso;
 - ricovero attivo senza data di dimissione;
 - ricovero dimesso con data di dimissione obbligatoria.
+- un paziente può essere eliminato solo se non ha ricoveri registrati. Questa
+  scelta evita cartelle/documenti orfani tra microservizi.
 
 Le date di ingresso e dimissione sono `LocalDate`. Gli audit `createdAt` e
 `updatedAt` sono timestamp UTC. Le statistiche giornaliere usano il fuso
 configurato da `APP_TIME_ZONE`.
+
+## Endpoint
+
+| Metodo | Path | Scopo |
+|---|---|---|
+| `GET` | `/api/patients` | lista pazienti |
+| `POST` | `/api/patients` | crea paziente |
+| `GET` | `/api/patients/{patientId}` | dettaglio paziente |
+| `PUT` | `/api/patients/{patientId}` | modifica paziente |
+| `DELETE` | `/api/patients/{patientId}` | elimina paziente senza ricoveri |
+| `GET` | `/api/patients/{patientId}/admissions` | ricoveri di un paziente |
+| `POST` | `/api/patients/{patientId}/admissions` | apre ricovero |
+| `GET` | `/api/admissions` | lista globale ricoveri |
+| `GET` | `/api/admissions/{admissionId}` | dettaglio ricovero |
+| `POST` | `/api/admissions/{admissionId}/discharge` | dimette ricovero |
+| `DELETE` | `/api/admissions/{admissionId}` | elimina ricovero |
+| `GET` | `/api/patients/statistics` | KPI dashboard |
+| `GET` | `/api/patients/statistics/activity?from=YYYY-MM-DD&to=YYYY-MM-DD` | ingressi/dimissioni per intervallo |
+| `GET` | `/api/clinicians` | lookup clinici/medici firmatari |
+
+`/api/clinicians` è una lista statica locale al servizio: non rappresenta
+utenti applicativi e non introduce ruoli oltre `ADMIN`.
 
 ## Configurazione
 

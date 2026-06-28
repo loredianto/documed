@@ -1,16 +1,22 @@
 package it.projectwork.documed.documentservice.controller;
 
+import javax.validation.Valid;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import it.projectwork.documed.documentservice.dto.DocumentOcrConfirmationRequest;
 import it.projectwork.documed.documentservice.dto.DocumentOcrResponse;
+import it.projectwork.documed.documentservice.dto.DocumentResponse;
 import it.projectwork.documed.documentservice.service.DocumentOcrService;
 
 /**
@@ -39,5 +45,13 @@ public class DocumentOcrController {
     @ApiOperation("Returns the current OCR state and extracted text")
     public DocumentOcrResponse findResult(@PathVariable String documentId) {
         return documentOcrService.findResult(documentId);
+    }
+
+    @PatchMapping
+    @ApiOperation("Confirms or corrects the OCR digital-document metadata")
+    public DocumentResponse confirm(
+            @PathVariable String documentId,
+            @Valid @RequestBody DocumentOcrConfirmationRequest request) {
+        return documentOcrService.confirm(documentId, request);
     }
 }

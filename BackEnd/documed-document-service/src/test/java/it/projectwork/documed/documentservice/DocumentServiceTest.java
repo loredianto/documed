@@ -99,12 +99,14 @@ class DocumentServiceTest {
         assertThat(response.getAdmissionId()).isEqualTo(ADMISSION_ID);
         assertThat(response.getOriginalFilename()).isEqualTo("report.png");
         assertThat(response.getOcrStatus()).isEqualTo(OcrStatus.PENDING);
+        assertThat(response.isFiledInRecord()).isFalse();
 
         ArgumentCaptor<PatientDocument> metadata = ArgumentCaptor.forClass(PatientDocument.class);
         verify(documentRepository).save(metadata.capture());
         assertThat(metadata.getValue().getGridFsFileId()).isEqualTo(GRID_FS_ID);
         assertThat(metadata.getValue().getPatientId()).isEqualTo(PATIENT_ID);
         assertThat(metadata.getValue().getExtractedText()).isNull();
+        assertThat(metadata.getValue().isFiledInRecord()).isFalse();
     }
 
     @Test
@@ -249,6 +251,18 @@ class DocumentServiceTest {
         assertThat(statistics.getTotalDocuments()).isEqualTo(3);
         assertThat(statistics.getDocumentsByType().get(DocumentType.MEDICAL_REPORT)).isEqualTo(2);
         assertThat(statistics.getDocumentsByOcrStatus().get(OcrStatus.PENDING)).isEqualTo(3);
+    }
+
+    @Test
+    void filesDocumentInAdmissionRecord() {
+        PatientDocument metadata = existingDocument();
+        when(documentRepository.findById("document-1")).thenReturn(Optional.of(metadata));
+        when(documentRepository.save(any(PatientDocument.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        documentService.fileInRecord("document-1");
+
+        assertThat(metadata.isFiledInRecord()).isTrue();
+        verify(documentRepository).save(metadata);
     }
 
     private void configureExistingAdmission() {

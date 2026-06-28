@@ -1,7 +1,11 @@
 package it.projectwork.documed.patientservice.controller;
 
+import java.util.List;
+
 import javax.validation.Valid;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +33,12 @@ public class AdmissionController {
         this.admissionService = admissionService;
     }
 
+    @GetMapping
+    @ApiOperation("Lists all admissions")
+    public List<AdmissionResponse> findAll() {
+        return admissionService.findAll();
+    }
+
     @GetMapping("/{admissionId}")
     @ApiOperation("Returns one admission")
     public AdmissionResponse findById(@PathVariable Long admissionId) {
@@ -40,5 +50,12 @@ public class AdmissionController {
     public AdmissionResponse discharge(@PathVariable Long admissionId,
             @Valid @RequestBody DischargeAdmissionRequest request) {
         return admissionService.discharge(admissionId, request);
+    }
+
+    @DeleteMapping("/{admissionId}")
+    @ApiOperation("Deletes one admission record")
+    public ResponseEntity<Void> delete(@PathVariable Long admissionId) {
+        admissionService.delete(admissionId);
+        return ResponseEntity.noContent().build();
     }
 }

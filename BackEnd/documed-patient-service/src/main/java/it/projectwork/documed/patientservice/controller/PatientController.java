@@ -1,15 +1,19 @@
 package it.projectwork.documed.patientservice.controller;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.validation.Valid;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +23,7 @@ import io.swagger.annotations.ApiOperation;
 import it.projectwork.documed.patientservice.dto.AdmissionResponse;
 import it.projectwork.documed.patientservice.dto.CreateAdmissionRequest;
 import it.projectwork.documed.patientservice.dto.CreatePatientRequest;
+import it.projectwork.documed.patientservice.dto.DailyAdmissionStatisticsResponse;
 import it.projectwork.documed.patientservice.dto.PatientResponse;
 import it.projectwork.documed.patientservice.dto.PatientStatisticsResponse;
 import it.projectwork.documed.patientservice.dto.UpdatePatientRequest;
@@ -67,6 +72,13 @@ public class PatientController {
         return patientService.update(patientId, request);
     }
 
+    @DeleteMapping("/{patientId}")
+    @ApiOperation("Deletes a patient without admission history")
+    public ResponseEntity<Void> delete(@PathVariable Long patientId) {
+        patientService.delete(patientId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{patientId}/admissions")
     @ApiOperation("Opens an admission for one patient")
     public ResponseEntity<AdmissionResponse> openAdmission(@PathVariable Long patientId,
@@ -85,5 +97,13 @@ public class PatientController {
     @ApiOperation("Returns patient and admission dashboard statistics")
     public PatientStatisticsResponse statistics() {
         return admissionService.statistics();
+    }
+
+    @GetMapping("/statistics/activity")
+    @ApiOperation("Returns admission and discharge counters for an inclusive date range")
+    public List<DailyAdmissionStatisticsResponse> activity(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return admissionService.activity(from, to);
     }
 }

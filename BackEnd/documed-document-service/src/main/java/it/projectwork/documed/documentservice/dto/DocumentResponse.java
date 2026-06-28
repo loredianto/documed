@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import it.projectwork.documed.documentservice.domain.DocumentType;
 import it.projectwork.documed.documentservice.domain.OcrStatus;
+import it.projectwork.documed.documentservice.domain.OcrExtraction;
 
 /**
  * Metadata returned to API consumers without exposing GridFS internals.
@@ -20,15 +21,17 @@ public class DocumentResponse {
     private final long fileSize;
     private final OcrStatus ocrStatus;
     private final String extractedText;
+    private final OcrExtraction ocrExtraction;
     private final String ocrErrorMessage;
     private final Instant uploadedAt;
     private final Instant processedAt;
+    private final boolean filedInRecord;
 
     public DocumentResponse(String id, Long patientId, Long admissionId,
             DocumentType documentType, String originalFilename, String description,
             String contentType, long fileSize, OcrStatus ocrStatus,
-            String extractedText, String ocrErrorMessage,
-            Instant uploadedAt, Instant processedAt) {
+            String extractedText, OcrExtraction ocrExtraction, String ocrErrorMessage,
+            Instant uploadedAt, Instant processedAt, boolean filedInRecord) {
         this.id = id;
         this.patientId = patientId;
         this.admissionId = admissionId;
@@ -39,9 +42,11 @@ public class DocumentResponse {
         this.fileSize = fileSize;
         this.ocrStatus = ocrStatus;
         this.extractedText = extractedText;
+        this.ocrExtraction = ocrExtraction;
         this.ocrErrorMessage = ocrErrorMessage;
         this.uploadedAt = uploadedAt;
         this.processedAt = processedAt;
+        this.filedInRecord = filedInRecord;
     }
 
     public String getId() {
@@ -84,6 +89,10 @@ public class DocumentResponse {
         return extractedText;
     }
 
+    public OcrExtraction getOcrExtraction() {
+        return ocrExtraction;
+    }
+
     public String getOcrErrorMessage() {
         return ocrErrorMessage;
     }
@@ -94,5 +103,9 @@ public class DocumentResponse {
 
     public Instant getProcessedAt() {
         return processedAt;
+    }
+
+    public boolean isFiledInRecord() {
+        return filedInRecord;
     }
 }

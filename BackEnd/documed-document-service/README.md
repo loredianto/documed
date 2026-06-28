@@ -16,7 +16,10 @@ avviare o ripetere l'estrazione sincrona tramite OCR Service.
 - download e cancellazione completa;
 - ricerca testuale e per filtri;
 - statistiche documentali e stati OCR;
-- invio del contenuto GridFS a OCR Service e persistenza del testo estratto.
+- invio del contenuto GridFS a OCR Service e persistenza del testo estratto;
+- generazione MVP della struttura OCR (`ocrExtraction`) per il frontend;
+- marcatura del documento come archiviato nella cartella del ricovero
+  (`filedInRecord`).
 
 ## Tecnologie
 
@@ -67,6 +70,8 @@ extractedText
 ocrErrorMessage
 uploadedAt
 processedAt
+filedInRecord
+ocrExtraction
 ```
 
 GridFS usa le collection standard `fs.files` e `fs.chunks`. La collection
@@ -93,6 +98,76 @@ upload e un indice testuale composto su nome file, descrizione e testo estratto.
 - in caso di errore il file GridFS resta disponibile e l'OCR può essere ripetuto;
 - lo stack trace non viene salvato: `ocrErrorMessage` contiene solo un messaggio
   sintetico.
+- dopo l'OCR la tipologia proposta può essere corretta dall'operatore con
+  `PATCH /api/documents/{id}/ocr`; la scelta manuale diventa il valore
+  autoritativo salvato nei metadati.
+- `filedInRecord=false` dopo upload; `POST /api/documents/{id}/file-in-record`
+  lo porta a `true` in modo idempotente.
+- `ocrExtraction` è una struttura MVP costruita dal testo OCR con regole
+  trasparenti: classificazione per parole chiave, campi base e risoluzione
+  paziente da confermare manualmente. Non esegue diagnosi, classificazione
+  clinica o NLP avanzato.
+
+## Endpoint
+
+| Metodo | Path | Scopo |
+|---|---|---|
+| `POST` | `/api/admissions/{admissionId}/documents` | upload multipart |
+| `GET` | `/api/admissions/{admissionId}/documents` | documenti di un ricovero |
+| `GET` | `/api/documents` | lista documenti |
+| `GET` | `/api/documents/search?query=&patientId=&admissionId=&documentType=&ocrStatus=` | ricerca e filtri |
+| `GET` | `/api/documents/{documentId}` | metadata documento |
+| `GET` | `/api/documents/{documentId}/content` | download file GridFS |
+| `DELETE` | `/api/documents/{documentId}` | elimina metadata e GridFS |
+| `POST` | `/api/documents/{documentId}/ocr` | esegue/ripete OCR |
+| `GET` | `/api/documents/{documentId}/ocr` | stato OCR e testo/struttura |
+| `PATCH` | `/api/documents/{documentId}/ocr` | conferma/corregge tipologia e struttura OCR |
+| `POST` | `/api/documents/{documentId}/file-in-record` | archivia in cartella clinica |
+| `GET` | `/api/documents/statistics` | KPI documenti/OCR |
+
+Risposta OCR essenziale:
+
+```json
+{
+  "documentId": "665...",
+  "ocrStatus": "COMPLETED",
+  "extractedText": "Testo grezzo...",
+  "ocrExtraction": {
+    "title": "Modulo di ricovero",
+    "fields": [
+      {
+        "key": "fiscalCode",
+        "label": "Codice fiscale",
+        "value": "RSSMRC80A01H501W",
+        "confidence": 0.8,
+        "source": "ocr",
+        "editable": false
+      }
+    ],
+    "bodyText": "Testo grezzo...",
+    "classification": {
+      "type": "ADMISSION_FORM",
+      "confidence": 0.75,
+      "status": "AUTO",
+      "candidates": [{ "type": "ADMISSION_FORM", "confidence": 0.75 }]
+    },
+    "resolution": {
+      "patientId": 1,
+      "doctorId": null,
+      "admissionId": 10,
+      "patientMatch": {
+        "status": "REVIEW",
+        "score": 0.5,
+        "extractedName": null,
+        "extractedFiscalCode": "RSSMRC80A01H501W",
+        "candidates": [1]
+      }
+    }
+  },
+  "ocrErrorMessage": null,
+  "processedAt": "2026-06-28T19:00:00Z"
+}
+```
 
 ## Configurazione
 

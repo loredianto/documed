@@ -15,6 +15,7 @@ import it.projectwork.documed.patientservice.dto.PatientResponse;
 import it.projectwork.documed.patientservice.dto.UpdatePatientRequest;
 import it.projectwork.documed.patientservice.error.BusinessRuleException;
 import it.projectwork.documed.patientservice.error.ResourceNotFoundException;
+import it.projectwork.documed.patientservice.repository.AdmissionRepository;
 import it.projectwork.documed.patientservice.repository.PatientRepository;
 
 /**
@@ -27,9 +28,11 @@ public class PatientService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PatientService.class);
 
     private final PatientRepository patientRepository;
+    private final AdmissionRepository admissionRepository;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(PatientRepository patientRepository, AdmissionRepository admissionRepository) {
         this.patientRepository = patientRepository;
+        this.admissionRepository = admissionRepository;
     }
 
     /**
@@ -81,6 +84,24 @@ public class PatientService {
         Patient saved = patientRepository.saveAndFlush(patient);
         LOGGER.info("Patient updated: patientId={}", patientId);
         return toResponse(saved);
+    }
+
+    /**
+     * Deletes a registry entry only when it has no admission history. The
+     * service deliberately avoids cascading clinical-administrative records,
+     * because documents live in another microservice and must not become
+     * orphaned silently.
+     */
+    @Transactional
+    public void delete(Long patientId) {
+        Patient patient = findEntity(patientId);
+        if (admissionRepository.countByPatientId(patientId) > 0) {
+            throw new BusinessRuleException(
+                    "PATIENT_HAS_ADMISSIONS",
+                    "Non è possibile eliminare un paziente con ricoveri registrati");
+        }
+        patientRepository.delete(patient);
+        LOGGER.info("Patient deleted: patientId={}", patientId);
     }
 
     @Transactional(readOnly = true)

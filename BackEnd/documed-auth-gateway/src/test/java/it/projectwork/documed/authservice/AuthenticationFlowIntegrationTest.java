@@ -157,6 +157,8 @@ class AuthenticationFlowIntegrationTest {
                 .isEqualTo("/api/admissions/*/documents/**");
         assertThat(zuulProperties.getRoutes().get("patient-admissions").getPath())
                 .isEqualTo("/api/admissions/**");
+        assertThat(zuulProperties.getRoutes().get("clinicians").getPath())
+                .isEqualTo("/api/clinicians/**");
         assertThat(routeIds.indexOf("admission-documents"))
                 .isLessThan(routeIds.indexOf("patient-admissions"));
     }

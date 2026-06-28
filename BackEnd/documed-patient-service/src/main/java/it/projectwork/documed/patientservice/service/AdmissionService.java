@@ -2,6 +2,7 @@ package it.projectwork.documed.patientservice.service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -79,6 +80,13 @@ public class AdmissionService {
     }
 
     @Transactional(readOnly = true)
+    public List<AdmissionResponse> findAll() {
+        return admissionRepository.findAllByOrderByAdmissionDateDescIdDesc().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public AdmissionResponse findById(Long admissionId) {
         return toResponse(findEntity(admissionId));
     }
@@ -127,6 +135,41 @@ public class AdmissionService {
                 admissionRepository.countByAdmissionDate(today),
                 admissionRepository.countByDischargeDate(today),
                 daily);
+    }
+
+    /**
+     * Returns daily admission/discharge activity for an inclusive date range.
+     * A one-year limit keeps accidental wide dashboard queries bounded.
+     */
+    @Transactional(readOnly = true)
+    public List<DailyAdmissionStatisticsResponse> activity(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new BusinessRuleException(
+                    "INVALID_ACTIVITY_RANGE", "La data iniziale non può essere successiva alla data finale");
+        }
+        if (ChronoUnit.DAYS.between(from, to) > 366) {
+            throw new BusinessRuleException(
+                    "ACTIVITY_RANGE_TOO_LARGE", "L'intervallo massimo consentito è di 366 giorni");
+        }
+
+        List<DailyAdmissionStatisticsResponse> daily = new ArrayList<>();
+        LocalDate current = from;
+        while (!current.isAfter(to)) {
+            daily.add(new DailyAdmissionStatisticsResponse(
+                    current,
+                    admissionRepository.countByAdmissionDate(current),
+                    admissionRepository.countByDischargeDate(current)));
+            current = current.plusDays(1);
+        }
+        return daily;
+    }
+
+    @Transactional
+    public void delete(Long admissionId) {
+        Admission admission = findEntity(admissionId);
+        admissionRepository.delete(admission);
+        LOGGER.info("Admission deleted: admissionId={}, patientId={}",
+                admissionId, admission.getPatient().getId());
     }
 
     private Admission findEntity(Long admissionId) {
