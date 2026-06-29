@@ -1,6 +1,7 @@
 # DocuMed Frontend
 
 SPA React/TypeScript per il flusso amministrativo DocuMed. Il browser comunica esclusivamente con l'Auth Gateway; patient-service e document-service non sono chiamati direttamente.
+Il frontend non contiene dataset applicativi locali: tutti i dati operativi arrivano dal backend.
 
 ## Tecnologie
 
@@ -87,6 +88,11 @@ esclusivamente all'Auth Gateway. Il frontend è disponibile su
 - pazienti/ricoveri: `/api/patients/**`, `/api/admissions/**`;
 - documenti/OCR: `/api/documents/**`, `/api/admissions/{id}/documents`.
 - dashboard: `GET /api/patients/statistics` e `GET /api/documents/statistics` in parallelo.
+
+Nella dashboard, “Cartelle cliniche incomplete” conta i ricoveri attivi a cui
+manca almeno un documento obbligatorio già archiviato in cartella clinica
+(`filedInRecord=true`). Il contatore secondario mostra il numero totale di
+documenti obbligatori mancanti.
 
 L'upload accetta PNG, JPEG e PDF fino al limite del backend. L'OCR reale supporta PNG/JPEG; un PDF resta archiviabile e scaricabile ma l'elaborazione OCR fallisce in modo controllato.
 

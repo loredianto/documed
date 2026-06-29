@@ -1,4 +1,4 @@
-import { averageActiveStayDays, incompleteAdmissions, incompletePatients, missingMandatoryTypes } from "../utils/records";
+import { averageActiveStayDays, incompleteAdmissions, incompletePatients, missingMandatoryDocumentsCount, missingMandatoryTypes } from "../utils/records";
 import { Admission, Patient, PatientDocument } from "../types";
 
 function admission(id: number, status: Admission["status"] = "ACTIVE"): Admission {
@@ -9,12 +9,12 @@ function admission(id: number, status: Admission["status"] = "ACTIVE"): Admissio
   };
 }
 
-function doc(admissionId: number, documentType: PatientDocument["documentType"]): PatientDocument {
+function doc(admissionId: number, documentType: PatientDocument["documentType"], filedInRecord = true): PatientDocument {
   return {
     id: `doc-${admissionId}-${documentType}`, patientId: admissionId, admissionId, documentType,
     originalFilename: "f.pdf", description: null, contentType: "application/pdf", fileSize: 1,
     ocrStatus: "COMPLETED", extractedText: null, ocrExtraction: null, ocrErrorMessage: null,
-    uploadedAt: "2026-06-20T09:00:00Z", processedAt: null, filedInRecord: false,
+    uploadedAt: "2026-06-20T09:00:00Z", processedAt: null, filedInRecord,
   };
 }
 
@@ -27,7 +27,7 @@ function patient(id: number, over: Partial<Patient>): Patient {
 }
 
 describe("missingMandatoryTypes", () => {
-  it("lists the mandatory types not yet uploaded for an admission", () => {
+  it("lists the mandatory types not yet filed for an admission", () => {
     const docs = [doc(1, "ADMISSION_FORM"), doc(1, "CONSENT_FORM")];
     expect(missingMandatoryTypes(admission(1), docs)).toEqual(["IDENTITY_DOCUMENT"]);
   });
@@ -35,6 +35,11 @@ describe("missingMandatoryTypes", () => {
   it("returns empty when all mandatory documents are present", () => {
     const docs = [doc(1, "IDENTITY_DOCUMENT"), doc(1, "ADMISSION_FORM"), doc(1, "CONSENT_FORM")];
     expect(missingMandatoryTypes(admission(1), docs)).toEqual([]);
+  });
+
+  it("does not count uploaded documents until they are filed in the clinical record", () => {
+    const docs = [doc(1, "IDENTITY_DOCUMENT", false), doc(1, "ADMISSION_FORM"), doc(1, "CONSENT_FORM")];
+    expect(missingMandatoryTypes(admission(1), docs)).toEqual(["IDENTITY_DOCUMENT"]);
   });
 });
 
@@ -47,6 +52,16 @@ describe("incompleteAdmissions", () => {
 
   it("ignores discharged admissions even if undocumented", () => {
     expect(incompleteAdmissions([admission(2, "DISCHARGED")], [])).toEqual([]);
+  });
+
+  it("counts all missing mandatory documents across active incomplete admissions", () => {
+    const admissions = [admission(1, "ACTIVE"), admission(2, "ACTIVE"), admission(3, "DISCHARGED")];
+    const docs = [
+      doc(1, "IDENTITY_DOCUMENT"),
+      doc(1, "ADMISSION_FORM"),
+      doc(2, "IDENTITY_DOCUMENT", false),
+    ];
+    expect(missingMandatoryDocumentsCount(admissions, docs)).toBe(4);
   });
 });
 

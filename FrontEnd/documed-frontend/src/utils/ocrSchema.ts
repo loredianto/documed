@@ -100,7 +100,7 @@ export function valuesToFields(values: Record<string, string>, type: DocumentTyp
 
 /**
  * Parole chiave per dedurre la tipologia dal contenuto (testo OCR + nome file + descrizione).
- * Nel mock il segnale è povero (spesso solo il nome file); in produzione qui passa il testo OCR reale.
+ * Il segnale principale è il testo OCR reale, eventualmente arricchito da nome file e descrizione.
  */
 const TYPE_KEYWORDS: { type: DocumentType; terms: string[] }[] = [
   { type: "CONSENT_FORM",       terms: ["consenso", "acconsento", "informato"] },

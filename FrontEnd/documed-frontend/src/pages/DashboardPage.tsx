@@ -10,7 +10,7 @@ import { PeriodFilter } from "../components/PeriodFilter";
 import { Fade } from "@/lib/motion";
 import { Admission, DailyActivity, Patient, PatientDocument, PatientStatistics } from "../types";
 import { formatDate, readableError } from "../utils/format";
-import { averageActiveStayDays, incompleteAdmissions, incompletePatients } from "../utils/records";
+import { averageActiveStayDays, incompleteAdmissions, incompletePatients, missingMandatoryDocumentsCount } from "../utils/records";
 import { lastDays, Range } from "../utils/period";
 
 interface Task {
@@ -19,6 +19,7 @@ interface Task {
   count: number;
   label: string;
   hint: string;
+  detail?: string;
   icon: typeof FolderClock;
   tone: "danger" | "warn" | "review" | "info";
 }
@@ -64,8 +65,12 @@ export function DashboardPage() {
     () => incompleteAdmissions(admissions, documents),
     [admissions, documents],
   );
+  const missingRecordDocuments = useMemo(
+    () => missingMandatoryDocumentsCount(admissions, documents),
+    [admissions, documents],
+  );
   const pendingOcr = useMemo(
-    () => documents.filter((d) => d.ocrStatus === "PENDING" || d.ocrStatus === "PROCESSING"),
+    () => documents.filter((d) => d.ocrStatus === "PENDING"),
     [documents],
   );
   const failedOcr = useMemo(
@@ -75,11 +80,20 @@ export function DashboardPage() {
   const incompleteAn = useMemo(() => incompletePatients(patientList), [patientList]);
 
   const tasks: Task[] = useMemo(() => [
-    { key: "records",     to: "/ricoveri",                  count: incomplete.length,   label: "Cartelle cliniche incomplete", hint: "ricoveri senza identità, modulo o consenso", icon: FolderClock,    tone: "warn" },
+    {
+      key: "records",
+      to: "/ricoveri",
+      count: incomplete.length,
+      label: "Cartelle cliniche incomplete",
+      hint: "ricoveri attivi senza documenti obbligatori in cartella",
+      detail: `${missingRecordDocuments} ${missingRecordDocuments === 1 ? "documento obbligatorio mancante" : "documenti obbligatori mancanti"}`,
+      icon: FolderClock,
+      tone: "warn",
+    },
     { key: "ocr-failed",  to: "/documents?ocrStatus=FAILED",count: failedOcr.length,    label: "OCR da rilavorare",            hint: "documenti non riconosciuti, da ricaricare",  icon: AlertTriangle,  tone: "danger" },
-    { key: "ocr-pending", to: "/documents?ocrStatus=PENDING",count: pendingOcr.length,  label: "Documenti da elaborare",       hint: "in coda per la versione digitale",           icon: FileSearch,     tone: "info" },
+    { key: "ocr-pending", to: "/documents?ocrStatus=PENDING",count: pendingOcr.length,  label: "Documenti da elaborare",       hint: "non ancora trasformati in versione digitale", icon: FileSearch,     tone: "info" },
     { key: "registry",    to: "/patients",                  count: incompleteAn.length, label: "Anagrafiche incomplete",       hint: "manca un recapito o il codice fiscale",      icon: UserPlus,       tone: "info" },
-  ], [incomplete.length, failedOcr.length, pendingOcr.length, incompleteAn.length]);
+  ], [incomplete.length, missingRecordDocuments, failedOcr.length, pendingOcr.length, incompleteAn.length]);
 
   const openTasks   = useMemo(() => tasks.reduce((s, t) => s + t.count, 0), [tasks]);
   const maxDaily    = useMemo(() => Math.max(1, ...activity.flatMap((d) => [d.admissions, d.discharges])), [activity]);
@@ -205,7 +219,12 @@ export function DashboardPage() {
                           <span className="dm-worklist-count">{t.count}</span>
                           <span className="dm-worklist-text">
                             <span className="dm-worklist-label">{t.label}</span>
-                            <span className="dm-worklist-hint">{empty ? "nessun arretrato" : t.hint}</span>
+                            <span className="dm-worklist-hint">
+                              {empty ? "nessun arretrato" : t.hint}
+                            </span>
+                            {!empty && t.detail && (
+                              <span className="dm-worklist-detail">{t.detail}</span>
+                            )}
                           </span>
                           <ArrowRight className="dm-worklist-go" size={16} aria-hidden="true" />
                         </Link>

@@ -4,19 +4,7 @@ interface TokenResponse {
   access_token: string;
 }
 
-// Fake JWT with exp far in the future, passes isTokenUsable()
-const MOCK_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6OTk5OTk5OTk5OX0.mock";
-
 export async function login(username: string, password: string): Promise<void> {
-  if (import.meta.env.VITE_MOCK_MODE === "true") {
-    if (username === "admin" && password === "AdminDemo123!") {
-      storeAccessToken(MOCK_TOKEN);
-      return;
-    }
-    throw new ApiError("Credenziali amministratore non valide", 401, "LOGIN_FAILED");
-  }
-
   const clientId = import.meta.env.VITE_AUTH_CLIENT_ID;
   const clientSecret = import.meta.env.VITE_AUTH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {

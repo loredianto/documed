@@ -7,18 +7,20 @@ export const MANDATORY_DOCUMENT_TYPES: DocumentType[] = [
   "CONSENT_FORM",
 ];
 
-/** Tipi obbligatori che mancano alla cartella di un ricovero (in base ai documenti caricati). */
+/** Tipi obbligatori che mancano alla cartella di un ricovero. */
 export function missingMandatoryTypes(
   admission: Admission,
   documents: PatientDocument[],
 ): DocumentType[] {
   const present = new Set(
-    documents.filter((d) => d.admissionId === admission.id).map((d) => d.documentType),
+    documents
+      .filter((d) => d.admissionId === admission.id && d.filedInRecord)
+      .map((d) => d.documentType),
   );
   return MANDATORY_DOCUMENT_TYPES.filter((t) => !present.has(t));
 }
 
-/** Ricoveri attivi a cui manca almeno un documento obbligatorio. */
+/** Ricoveri attivi a cui manca almeno un documento obbligatorio già archiviato in cartella. */
 export function incompleteAdmissions(
   admissions: Admission[],
   documents: PatientDocument[],
@@ -26,6 +28,15 @@ export function incompleteAdmissions(
   return admissions
     .filter((a) => a.status === "ACTIVE")
     .filter((a) => missingMandatoryTypes(a, documents).length > 0);
+}
+
+/** Numero totale di documenti obbligatori mancanti nelle cartelle attive incomplete. */
+export function missingMandatoryDocumentsCount(
+  admissions: Admission[],
+  documents: PatientDocument[],
+): number {
+  return incompleteAdmissions(admissions, documents)
+    .reduce((total, admission) => total + missingMandatoryTypes(admission, documents).length, 0);
 }
 
 /** Anagrafiche prive di un recapito (email o telefono) o del codice fiscale. */
@@ -50,9 +61,9 @@ export function patientAdmissionState(admissions: Admission[]): PatientState {
 }
 
 /**
- * Estrae i metadati della cartella clinica dal campo `notes` del ricovero
- * (dove, per convenzione del mock, sono annotati regime e numero nosologico).
- * Tutto in sola lettura, con fallback se le note sono libere o assenti.
+ * Estrae metadati amministrativi dal campo `notes` del ricovero quando il
+ * backend li fornisce in forma testuale. Tutto resta in sola lettura, con
+ * fallback se le note sono libere o assenti.
  */
 export function parseAdmissionMeta(notes: string | null): { nosologico: string | null; regime: string | null } {
   if (!notes) return { nosologico: null, regime: null };

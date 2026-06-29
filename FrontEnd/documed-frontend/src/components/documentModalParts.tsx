@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, FileText, FolderPlus } from "lucide-react";
-import { canPreviewDocument, createDocumentPreviewUrl, saveDocumentToRecord } from "../api/documents";
+import { canPreviewDocument, createDocumentPreviewUrl, isPreviewImage, isPreviewPdf, saveDocumentToRecord } from "../api/documents";
 import { PatientDocument } from "../types";
 import { readableError } from "../utils/format";
 import { FieldDef } from "../utils/ocrSchema";
 
-/** Anteprima del documento: scarica il binario via API e mostra PNG/JPEG come immagine. */
+/** Anteprima del documento: scarica il binario via API e mostra immagini/PDF. */
 export function DocPreview({ document }: { document: PatientDocument }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previewable = canPreviewDocument(document);
+  const image = isPreviewImage(document);
+  const pdf = isPreviewPdf(document);
 
   useEffect(() => {
     let revokedOrPendingUrl: string | null = null;
@@ -49,7 +51,11 @@ export function DocPreview({ document }: { document: PatientDocument }) {
   return (
     <div className="dm-doc-preview">
       {url ? (
-        <img src={url} alt={`Anteprima di ${document.originalFilename}`} />
+        image ? (
+          <img src={url} alt={`Anteprima di ${document.originalFilename}`} />
+        ) : pdf ? (
+          <iframe src={url} title={`Anteprima di ${document.originalFilename}`} />
+        ) : null
       ) : (
         <div className="dm-doc-preview-placeholder">
           <FileText size={48} aria-hidden="true" />
@@ -58,8 +64,8 @@ export function DocPreview({ document }: { document: PatientDocument }) {
             {loading
               ? "Caricamento anteprima…"
               : error ?? (previewable
-                ? "Anteprima disponibile con backend reale"
-                : "Anteprima disponibile per immagini PNG o JPEG")}
+                ? "Anteprima non disponibile"
+                : "Anteprima disponibile per immagini PNG, JPEG o PDF")}
           </small>
         </div>
       )}
