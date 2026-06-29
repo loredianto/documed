@@ -10,11 +10,14 @@ spring:
     enabled: true
     schemas: auth_service
     default-schema: auth_service
+    # V2 is kept for Flyway compatibility with existing local databases, but
+    # these placeholders are intentionally empty: the service must not create
+    # local demo users or OAuth clients automatically.
     placeholders:
-      demo_admin_username: ${DEMO_ADMIN_USERNAME:}
-      demo_admin_password_hash: ${DEMO_ADMIN_PASSWORD_HASH:}
-      demo_oauth_client_id: ${DEMO_OAUTH_CLIENT_ID:}
-      demo_oauth_client_secret_hash: ${DEMO_OAUTH_CLIENT_SECRET_HASH:}
+      demo_admin_username: ''
+      demo_admin_password_hash: ''
+      demo_oauth_client_id: ''
+      demo_oauth_client_secret_hash: ''
   jpa:
     open-in-view: false
     hibernate:

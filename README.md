@@ -26,7 +26,7 @@ Il browser comunica con API Gateway. Document Service estrae il `patientId` dal 
 - [Patient Service](BackEnd/documed-patient-service/README.md)
 - [Document Service](BackEnd/documed-document-service/README.md)
 - [OCR Service](BackEnd/documed-ocr-service/README.md)
-- [Frontend](FrontEnd/documed-frontend/README.md)
+- [Frontend](FrontEnd/README.md)
 - [Infrastruttura](Infrastructure/README.md)
 
 ## Prerequisiti
@@ -43,17 +43,13 @@ docker compose ps
 
 Aprire `http://localhost:3000`.
 
-Credenziali esclusivamente locali:
+Prima del login devono esistere nel database PostgreSQL:
 
-- utente ADMIN: `admin`
-- password: `AdminDemo123!`
-- client OAuth2 SPA: `documed-web`
-- secret client demo: `DocuMedWebDemo123!`
+- un amministratore in `auth_service.users`;
+- un client OAuth2 in `auth_service.oauth_clients`.
 
-Utente e client vengono inseriti nelle tabelle PostgreSQL dello schema
-`auth_service` dalla migrazione Flyway iniziale; non esistono utenti in memoria
-o registrazione pubblica. Fuori dall'ambiente locale lasciare vuote le variabili
-demo e sostituire tutte le credenziali e la `JWT_SIGNING_KEY`.
+Il progetto non crea più utenti o client locali da variabili d'ambiente. Gli
+esempi SQL sono nel [README dell'Auth Gateway](BackEnd/documed-auth-gateway/README.md).
 
 ## Servizi e porte
 
@@ -117,7 +113,6 @@ Swagger del gateway: `http://localhost:8282/swagger-ui.html`. Le porte interne n
 
 ## Dati e amministratori
 
-Il repository non contiene dati sanitari reali. Le stringhe usate da test e demo
-sono fittizie. Amministratori e client OAuth2 sono gestiti direttamente nelle
+Il repository non contiene dati sanitari reali. Amministratori e client OAuth2 sono gestiti direttamente nelle
 tabelle dello schema PostgreSQL `auth_service`; gli esempi SQL sono nel
 [README dell'Auth Gateway](BackEnd/documed-auth-gateway/README.md).

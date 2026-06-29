@@ -119,10 +119,6 @@ services:
       DATABASE_USERNAME: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SIGNING_KEY: ${JWT_SIGNING_KEY}
-      DEMO_ADMIN_USERNAME: ${DEMO_ADMIN_USERNAME:-}
-      DEMO_ADMIN_PASSWORD_HASH: ${DEMO_ADMIN_PASSWORD_HASH:-}
-      DEMO_OAUTH_CLIENT_ID: ${DEMO_OAUTH_CLIENT_ID:-}
-      DEMO_OAUTH_CLIENT_SECRET_HASH: ${DEMO_OAUTH_CLIENT_SECRET_HASH:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       PATIENT_SERVICE_URL: http://patient-service:8081
       DOCUMENT_SERVICE_URL: http://document-service:8082
@@ -144,12 +140,12 @@ services:
 
   frontend:
     build:
-      context: ./FrontEnd/documed-frontend
+      context: ./FrontEnd
       dockerfile: docker/Dockerfile
       args:
         VITE_API_BASE_URL: ""
-        VITE_AUTH_CLIENT_ID: ${DEMO_OAUTH_CLIENT_ID}
-        VITE_AUTH_CLIENT_SECRET: ${DEMO_OAUTH_CLIENT_SECRET:?DEMO_OAUTH_CLIENT_SECRET is required}
+        VITE_AUTH_CLIENT_ID: ${FRONTEND_AUTH_CLIENT_ID:?FRONTEND_AUTH_CLIENT_ID must match auth_service.oauth_clients.client_id}
+        VITE_AUTH_CLIENT_SECRET: ${FRONTEND_AUTH_CLIENT_SECRET:?FRONTEND_AUTH_CLIENT_SECRET must match the OAuth client secret stored in PostgreSQL}
     restart: unless-stopped
     depends_on:
       auth-gateway:

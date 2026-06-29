@@ -28,22 +28,19 @@ docker compose down
 
 `docker compose down` conserva i dati. `docker compose down -v` elimina definitivamente entrambi i database e va usato solo quando si vuole ripartire da zero.
 
-## Account locale nel database
+## Account e client OAuth2 nel database
 
-Le migrazioni Flyway dell'Auth Gateway creano lo schema PostgreSQL
-`auth_service`, le tabelle `users` e `oauth_clients` e, solo se sono valorizzate
-le variabili `DEMO_*`, le righe dimostrative. L'applicazione non crea account in
-memoria e non espone registrazione pubblica.
+Le migrazioni Flyway dell'Auth Gateway creano solo lo schema PostgreSQL
+`auth_service` e le tabelle `users` e `oauth_clients`. L'applicazione non crea
+account locali, non usa utenti in memoria e non espone registrazione pubblica.
 
-Le password sono BCrypt. Se vengono cambiate, rigenerare i due hash in `.env` prima della prima inizializzazione, ad esempio:
+Gli amministratori e i client OAuth2 devono essere inseriti direttamente in
+PostgreSQL seguendo il README dell'Auth Gateway. Password e client secret sono
+salvati come hash BCrypt, ad esempio:
 
 ```bash
 htpasswd -bnBC 10 demo 'nuova-password' | cut -d: -f2
 ```
-
-La migrazione demo viene eseguita una sola volta. Gli amministratori e i client
-successivi vanno inseriti direttamente in PostgreSQL seguendo il README
-dell'Auth Gateway.
 
 ## Healthcheck e dipendenze
 
@@ -54,4 +51,5 @@ pubbliche aggiuntive.
 
 ## Configurazione
 
-Tutte le variabili sono documentate in `.env.example`. Le credenziali sono esclusivamente dimostrative e devono essere sostituite fuori dallo sviluppo locale. La stessa `JWT_SIGNING_KEY` deve essere condivisa dai quattro backend.
+Tutte le variabili sono documentate in `.env.example`. Non committare credenziali
+reali. La stessa `JWT_SIGNING_KEY` deve essere condivisa dai quattro backend.

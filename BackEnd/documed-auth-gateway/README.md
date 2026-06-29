@@ -34,7 +34,7 @@ src/main/java/it/projectwork/documed/authservice/
 ├── repository/   persistenza JPA di utenti e client OAuth2
 └── service/      UserDetails e client details
 src/main/resources/
-├── db/migration/ schema e dati demo opzionali
+├── db/migration/ schema auth_service
 └── application.yml
 ```
 
@@ -47,10 +47,6 @@ Vedere [`.env.example`](.env.example).
 | `DATABASE_URL` | sì | JDBC URL PostgreSQL |
 | `DATABASE_USERNAME` | sì | utente PostgreSQL |
 | `DATABASE_PASSWORD` | sì | password PostgreSQL |
-| `DEMO_ADMIN_USERNAME` | no | username ADMIN demo creato dalla migrazione iniziale |
-| `DEMO_ADMIN_PASSWORD_HASH` | no | password ADMIN demo in formato BCrypt |
-| `DEMO_OAUTH_CLIENT_ID` | no | identificativo client OAuth2 demo |
-| `DEMO_OAUTH_CLIENT_SECRET_HASH` | no | secret client demo in formato BCrypt |
 | `JWT_SIGNING_KEY` | sì | Segreto HMAC, minimo 32 caratteri |
 | `CORS_ALLOWED_ORIGINS` | no | Origini separate da virgola |
 | `PATIENT_SERVICE_URL` | no in locale | Destinazione Patient Service |
@@ -74,9 +70,11 @@ Lo schema `public` resta di competenza del Patient Service. `username` e
 `client_id` hanno vincoli univoci. Password e client secret sono salvati solo
 come hash BCrypt; la chiave JWT non viene salvata nel database.
 
-La migrazione `V2__insert_local_demo_auth.sql` inserisce le righe demo solo
-quando le quattro variabili `DEMO_*` sono valorizzate al primo avvio. Non esiste
-registrazione pubblica e l'applicazione non crea utenti in memoria.
+La migrazione `V2__insert_local_demo_auth.sql` è mantenuta solo per compatibilità
+con database locali che potrebbero averla già registrata nello storico Flyway.
+Nel profilo corrente i placeholder sono vuoti in `application.yml`, quindi non
+inserisce utenti o client. Non esiste registrazione pubblica e l'applicazione
+non crea utenti in memoria.
 
 Per aggiungere un amministratore successivo, generare l'hash BCrypt e inserire
 la riga direttamente nel database:

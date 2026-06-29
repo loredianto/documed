@@ -42,6 +42,7 @@ Il client OAuth2 di una SPA non può conservare un segreto reale: queste credenz
 Prerequisiti: Node.js 20.19+ e npm. Node 16 non è supportato perché fuori manutenzione e incompatibile con la toolchain aggiornata.
 
 ```bash
+cd FrontEnd
 cp .env.example .env.local
 npm install
 npm run dev

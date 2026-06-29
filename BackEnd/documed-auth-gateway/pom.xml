@@ -98,6 +98,14 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Spring Security OAuth2 legacy pulls JAXB 2.x, whose bytecode optimization breaks on modern JDKs. -->
+                    <argLine>-Dcom.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize=true</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
